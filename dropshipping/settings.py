@@ -62,11 +62,14 @@ def _env_or_config(name, default=''):
 
 
 RENDER_EXTERNAL_HOSTNAME = str(os.getenv('RENDER_EXTERNAL_HOSTNAME', '')).strip()
+_BASE_DIR_POSIX = str(BASE_DIR).replace('\\', '/')
+RENDER_PATH_HINT = _BASE_DIR_POSIX.startswith('/opt/render/project/')
 RUNNING_ON_RENDER = (
     _to_bool(os.getenv('RENDER', 'False'), default=False)
     or bool(RENDER_EXTERNAL_HOSTNAME)
     or bool(str(os.getenv('RENDER_SERVICE_ID', '')).strip())
     or bool(str(os.getenv('RENDER_INSTANCE_ID', '')).strip())
+    or RENDER_PATH_HINT
 )
 
 
@@ -542,3 +545,4 @@ TAX_RATE = config('TAX_RATE', default=0.18, cast=float)  # 18% GST
 
 # Frontend URL for email verification and password reset
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
