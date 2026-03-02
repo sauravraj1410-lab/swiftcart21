@@ -76,8 +76,11 @@ RUNNING_ON_RENDER = (
 
 def _db_value(name, default=''):
     """
-    Use runtime environment values when present; otherwise fallback to .env.
+    In Render, use runtime environment only for DB settings.
+    Outside Render, allow .env fallback for local development.
     """
+    if RUNNING_ON_RENDER:
+        return str(os.getenv(name, default)).strip()
     return _env_or_config(name, default)
 
 
@@ -110,6 +113,8 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 IS_PRODUCTION = _to_bool(_env_or_config('DJANGO_PRODUCTION', 'False'), default=False)
 if not IS_PRODUCTION and not DEBUG:
     IS_PRODUCTION = any(not _is_local_host(host) for host in ALLOWED_HOSTS)
+if RUNNING_ON_RENDER:
+    IS_PRODUCTION = True
 
 if IS_PRODUCTION and (SECRET_KEY.startswith('django-insecure-') or len(SECRET_KEY) < 50):
     raise ImproperlyConfigured('Use a strong, non-default SECRET_KEY when running in production.')
