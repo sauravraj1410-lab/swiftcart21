@@ -1,0 +1,121 @@
+{% extends 'core/admin_base.html' %}
+
+{% block title %}Contacted To You - Admin Dashboard{% endblock %}
+
+{% block page_header %}
+<h1 class="h2">Contacted To You</h1>
+<div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+        <a href="{% url 'admin_contact_messages' %}" class="btn btn-sm btn-outline-secondary">All</a>
+        <a href="{% url 'admin_contact_messages' %}?status=unread" class="btn btn-sm btn-outline-warning">Unread</a>
+        <a href="{% url 'admin_contact_messages' %}?status=read" class="btn btn-sm btn-outline-success">Read</a>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="location.reload();">
+        <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Messages</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_messages }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Unread</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ unread_messages }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Read</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ read_messages }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">All Contact Messages</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Received At</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for msg in messages_list %}
+                    <tr>
+                        <td>{{ msg.name }}</td>
+                        <td>{{ msg.email }}</td>
+                        <td>{{ msg.subject }}</td>
+                        <td style="min-width: 280px; white-space: pre-wrap;">{{ msg.message }}</td>
+                        <td>{{ msg.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            {% if msg.is_read %}
+                                <span class="badge bg-success">Read</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Unread</span>
+                            {% endif %}
+                        </td>
+                        <td style="min-width: 170px;">
+                            <div class="d-flex gap-2">
+                                {% if not msg.is_read %}
+                                <form method="post" class="m-0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_read">
+                                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                                    <button type="submit" class="btn btn-sm btn-success">Mark Read</button>
+                                </form>
+                                {% endif %}
+                                <form method="post" class="m-0" onsubmit="return confirm('Delete this message?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="message_id" value="{{ msg.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No contact messages found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+</style>
+{% endblock %}

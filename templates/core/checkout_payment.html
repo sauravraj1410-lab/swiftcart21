@@ -1,0 +1,366 @@
+﻿{% extends 'core/base.html' %}
+
+{% block title %}Checkout Payment - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="mb-3">Step 2: Pay and Upload Screenshot</h3>
+                    <p class="text-muted mb-3">Click the payment button to open your UPI app (PhonePe, BHIM, Paytm, Navi, SuperMoney, etc).</p>
+
+                    <div id="missingCheckoutData" class="alert alert-warning d-none">
+                        Delivery details are missing. Please complete Step 1 first.
+                        <div class="mt-2">
+                            <a href="{% url 'checkout_details' product.id %}" class="btn btn-sm btn-outline-primary">Go to Step 1</a>
+                        </div>
+                    </div>
+
+                    <div class="card border-success mb-4">
+                        <div class="card-body">
+                            <h5 class="mb-3">UPI Payment</h5>
+                            <p class="mb-1">UPI ID: <strong id="upiIdValue">{{ admin_upi_id|default:"" }}</strong></p>
+                            <p class="mb-3">Amount: <strong>INR <span id="payAmount">0.00</span></strong></p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-success" id="copyUpiBtn">Copy UPI ID</button>
+                                <button type="button" class="btn btn-success" id="openUpiBtn">Pay with UPI App</button>
+                            </div>
+                            <small class="text-muted d-block mt-2">After payment, upload only the screenshot as proof.</small>
+                        </div>
+                    </div>
+
+                    <form id="paymentProofForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="paymentDateTime" class="form-label">Payment Date and Time</label>
+                            <input type="datetime-local" id="paymentDateTime" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentPhoneNumber" class="form-label">Paid From Mobile Number (for refund)</label>
+                            <input type="text" id="paymentPhoneNumber" class="form-control" maxlength="15" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentScreenshot" class="form-label">Payment Screenshot Proof</label>
+                            <input type="file" id="paymentScreenshot" class="form-control" accept="image/*" required>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" id="submitOrderBtn">Submit Order</button>
+                            <a href="{% url 'checkout_details' product.id %}" class="btn btn-outline-secondary">Back to Step 1</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-3">Order Summary</h5>
+                    <p class="mb-1"><strong>{{ product.name }}</strong></p>
+                    <p class="text-muted mb-2">Unit Price: INR <span id="unitPrice">{{ product.price }}</span></p>
+                    <p class="mb-2">Quantity: <span id="summaryQty">1</span></p>
+                    <hr>
+                    <p class="mb-3 fs-5">Total: <strong>INR <span id="summaryTotal">{{ product.price }}</span></strong></p>
+                    <div class="small">
+                        <div><strong>Name:</strong> <span id="summaryName">-</span></div>
+                        <div><strong>Mobile:</strong> <span id="summaryPhone">-</span></div>
+                        <div><strong>Paid At:</strong> <span id="summaryPaidAt">-</span></div>
+                        <div><strong>Paid From:</strong> <span id="summaryPaidFrom">-</span></div>
+                        <div><strong>Address:</strong> <span id="summaryAddress">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const checkoutProductId = '{{ product.id }}';
+const checkoutStorageKey = `checkout_${checkoutProductId}`;
+const unitPriceValue = Number('{{ product.price|floatformat:2 }}');
+const upiIdValue = '{{ admin_upi_id|escapejs }}';
+const sellerName = '{{ site_settings.site_name|default:"SwiftCart"|escapejs }}';
+const productName = '{{ product.name|escapejs }}';
+
+let checkoutData = null;
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function getAuthHeaders(isJson) {
+    const headers = {};
+    if (isJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    const isSessionAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const accessToken = localStorage.getItem('access_token');
+    if (!isSessionAuthenticated && accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+}
+
+function parseResponseData(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        return response.json();
+    }
+    return Promise.resolve({});
+}
+
+function notify(message, type) {
+    if (typeof showNotification === 'function') {
+        showNotification(message, type || 'info');
+        return;
+    }
+    alert(message);
+}
+
+function buildAddressText(data) {
+    return `${data.house_details}, ${data.village}, ${data.post_office}, ${data.district} - ${data.pin_code}`;
+}
+
+function getCurrentDateTimeLocal() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+}
+
+function normalizeDateTimeLocal(value) {
+    if (!value) {
+        return '';
+    }
+    return value.length === 16 ? `${value}:00` : value;
+}
+
+function buildUpiDeepLink(amount) {
+    const params = new URLSearchParams({
+        pa: upiIdValue,
+        pn: sellerName,
+        am: amount.toFixed(2),
+        cu: 'INR',
+        tn: `Order payment for ${productName}`
+    });
+    return `upi://pay?${params.toString()}`;
+}
+
+function populateSummary() {
+    if (!checkoutData) {
+        return;
+    }
+    const quantity = Number(checkoutData.quantity || 1);
+    const total = unitPriceValue * quantity;
+
+    document.getElementById('summaryQty').textContent = String(quantity);
+    document.getElementById('summaryTotal').textContent = total.toFixed(2);
+    document.getElementById('payAmount').textContent = total.toFixed(2);
+    document.getElementById('summaryName').textContent = checkoutData.recipient_name || '-';
+    document.getElementById('summaryPhone').textContent = checkoutData.recipient_phone || '-';
+    const paymentDateTimeInput = document.getElementById('paymentDateTime');
+    const paidAtValue = paymentDateTimeInput ? paymentDateTimeInput.value : '';
+    document.getElementById('summaryPaidAt').textContent = paidAtValue ? new Date(paidAtValue).toLocaleString() : '-';
+    document.getElementById('summaryPaidFrom').textContent = checkoutData.payment_phone_number || checkoutData.recipient_phone || '-';
+    document.getElementById('summaryAddress').textContent = buildAddressText(checkoutData);
+}
+
+async function copyUpiId() {
+    if (!upiIdValue) {
+        notify('UPI ID is not configured. Please contact admin.', 'error');
+        return false;
+    }
+    try {
+        await navigator.clipboard.writeText(upiIdValue);
+        notify('UPI ID copied.', 'success');
+        return true;
+    } catch (error) {
+        notify(`Copy failed. Please copy manually: ${upiIdValue}`, 'warning');
+        return false;
+    }
+}
+
+document.getElementById('copyUpiBtn').addEventListener('click', function() {
+    copyUpiId();
+});
+
+document.getElementById('openUpiBtn').addEventListener('click', async function() {
+    if (!checkoutData) {
+        notify('Please complete Step 1 first.', 'warning');
+        return;
+    }
+    if (!upiIdValue) {
+        notify('UPI ID is not configured. Please contact admin.', 'error');
+        return;
+    }
+
+    await copyUpiId();
+    const total = unitPriceValue * Number(checkoutData.quantity || 1);
+    window.location.href = buildUpiDeepLink(total);
+});
+
+document.getElementById('paymentPhoneNumber').addEventListener('input', function(event) {
+    const value = (event.target.value || '').trim();
+    if (checkoutData) {
+        checkoutData.payment_phone_number = value;
+    }
+    document.getElementById('summaryPaidFrom').textContent = value || (checkoutData && checkoutData.recipient_phone) || '-';
+});
+
+document.getElementById('paymentDateTime').addEventListener('input', function(event) {
+    const value = (event.target.value || '').trim();
+    document.getElementById('summaryPaidAt').textContent = value ? new Date(value).toLocaleString() : '-';
+});
+
+document.getElementById('paymentProofForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    if (!checkoutData) {
+        notify('Please complete Step 1 first.', 'warning');
+        return;
+    }
+
+    const screenshotInput = document.getElementById('paymentScreenshot');
+    const paymentDateTimeInput = document.getElementById('paymentDateTime');
+    const paymentDateTime = (paymentDateTimeInput.value || '').trim();
+    const paymentPhoneInput = document.getElementById('paymentPhoneNumber');
+    const paymentPhoneNumber = (paymentPhoneInput.value || '').trim();
+
+    if (!paymentDateTime) {
+        notify('Please enter payment date and time.', 'error');
+        return;
+    }
+
+    if (!paymentPhoneNumber) {
+        notify('Please enter the paid-from mobile number.', 'error');
+        return;
+    }
+
+    if (!screenshotInput.files.length) {
+        notify('Please upload payment screenshot proof.', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitOrderBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+        const formData = new FormData();
+        formData.append('product_id', checkoutData.product_id);
+        formData.append('quantity', checkoutData.quantity);
+        formData.append('recipient_name', checkoutData.recipient_name);
+        formData.append('recipient_phone', checkoutData.recipient_phone);
+        formData.append('payment_made_at', normalizeDateTimeLocal(paymentDateTime));
+        formData.append('payment_phone_number', paymentPhoneNumber);
+        formData.append('house_details', checkoutData.house_details);
+        formData.append('village', checkoutData.village);
+        formData.append('post_office', checkoutData.post_office);
+        formData.append('district', checkoutData.district);
+        formData.append('pin_code', checkoutData.pin_code);
+        formData.append('payment_screenshot', screenshotInput.files[0]);
+
+        const response = await fetch('/api/orders/buy-now/', {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(false)
+            },
+            body: formData
+        });
+
+        const data = await parseResponseData(response);
+        if (response.status === 401 || response.status === 403) {
+            notify('Please login to place an order.', 'warning');
+            setTimeout(function() {
+                window.location.href = '{% url "login" %}';
+            }, 1200);
+            return;
+        }
+
+        if (!response.ok || !data.success) {
+            let message = data.error || 'Failed to submit order.';
+            if (data.errors && typeof data.errors === 'object') {
+                const fieldMessages = Object.values(data.errors).map(function(err) {
+                    return Array.isArray(err) ? err.join(', ') : err;
+                });
+                if (fieldMessages.length) {
+                    message += '\n' + fieldMessages.join('\n');
+                }
+            }
+            throw new Error(message);
+        }
+
+        sessionStorage.removeItem(checkoutStorageKey);
+        notify(data.message || 'Order submitted successfully.', 'success');
+        setTimeout(function() {
+            window.location.href = data.redirect_url || '/orders/';
+        }, 1200);
+    } catch (error) {
+        notify(error.message || 'Failed to submit order.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const userAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const hasToken = !!localStorage.getItem('access_token');
+    if (!userAuthenticated && !hasToken) {
+        window.location.href = '{% url "login" %}';
+        return;
+    }
+
+    const rawData = sessionStorage.getItem(checkoutStorageKey);
+    if (!rawData) {
+        document.getElementById('missingCheckoutData').classList.remove('d-none');
+        document.getElementById('paymentProofForm').querySelectorAll('input,button').forEach(function(el) {
+            el.disabled = true;
+        });
+        return;
+    }
+
+    try {
+        checkoutData = JSON.parse(rawData);
+    } catch (error) {
+        sessionStorage.removeItem(checkoutStorageKey);
+        document.getElementById('missingCheckoutData').classList.remove('d-none');
+        return;
+    }
+
+    if (!checkoutData.payment_phone_number) {
+        checkoutData.payment_phone_number = checkoutData.recipient_phone || '';
+    }
+    const paymentDateTimeInput = document.getElementById('paymentDateTime');
+    paymentDateTimeInput.value = getCurrentDateTimeLocal();
+    document.getElementById('paymentPhoneNumber').value = checkoutData.payment_phone_number;
+
+    populateSummary();
+    if (!upiIdValue) {
+        notify('UPI ID is not configured. Please contact admin.', 'error');
+    }
+});
+</script>
+{% endblock %}
+

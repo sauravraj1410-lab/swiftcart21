@@ -1,0 +1,157 @@
+﻿{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}About Us - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold">About {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}</h1>
+                <p class="lead text-muted">SwiftCart is an online shopping platform registered in 2026.</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-bullseye text-primary me-2"></i>Our Mission</h5>
+                            <p class="card-text">
+                                To connect quality sellers with customers worldwide, providing a seamless online shopping experience that benefits everyone involved.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-eye text-success me-2"></i>Our Vision</h5>
+                            <p class="card-text">
+                                To become the leading online shopping platform that empowers entrepreneurs and delights customers with exceptional products and service.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4 mt-4">
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-users fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title">Community</h5>
+                            <p class="card-text">
+                                Building a strong community of sellers and buyers who support each other's success.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-shield-alt fa-3x text-success"></i>
+                            </div>
+                            <h5 class="card-title">Trust</h5>
+                            <p class="card-text">
+                                Ensuring every transaction is secure and every seller is verified and trustworthy.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-rocket fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="card-title">Innovation</h5>
+                            <p class="card-text">
+                                Continuously improving our platform with cutting-edge technology and features.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5">
+                <h2 class="text-center mb-4">Our Story</h2>
+                <div class="row">
+                    <div class="col-md-12">
+                        <p class="text-center">
+                            {% if site_settings and site_settings.site_description %}
+                                {{ site_settings.site_description }}
+                            {% else %}
+                                Founded with a simple mission: to make online shopping accessible and reliable for everyone. 
+                                We started as a small team passionate about e-commerce and have grown into a platform 
+                                that serves thousands of sellers and customers worldwide.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5">
+                <h2 class="text-center mb-4">Meet Our Team</h2>
+                <p class="text-center text-muted mb-4">Team Name: Saurav Kumar - Has All Power</p>
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team/ceo-founder.jpg' %}" class="rounded-circle" alt="CEO and Founder" style="width: 150px; height: 150px; object-fit: cover;">
+                                </div>
+                                <h5 class="card-title">Saurav Kumar</h5>
+                                <p class="text-muted small">CEO & Founder</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team/cto.jpg' %}" class="rounded-circle" alt="Chief Technology Officer" style="width: 150px; height: 150px; object-fit: cover;">
+                                </div>
+                                <h5 class="card-title">Saurav Kumar</h5>
+                                <p class="text-muted small">CTO</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team/head-of-sales.jpg' %}" class="rounded-circle" alt="Head of Sales" style="width: 150px; height: 150px; object-fit: cover;">
+                                </div>
+                                <h5 class="card-title">Saurav Kumar</h5>
+                                <p class="text-muted small">Head of Sales</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team/head-of-marketing.jpg' %}" class="rounded-circle" alt="Head of Marketing" style="width: 150px; height: 150px; object-fit: cover;">
+                                </div>
+                                <h5 class="card-title">Saurav Kumar</h5>
+                                <p class="text-muted small">Head of Marketing</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

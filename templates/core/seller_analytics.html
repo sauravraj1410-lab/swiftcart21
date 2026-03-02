@@ -1,0 +1,369 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Sales Analytics{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Sales Analytics</h2>
+        <div>
+            <select class="form-select d-inline-block w-auto" id="periodFilter">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Revenue</h6>
+                    <h3 id="totalRevenue">INR 0</h3>
+                    <small id="revenueChange">+0% from previous period</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Orders</h6>
+                    <h3 id="totalOrders">0</h3>
+                    <small id="ordersChange">+0% from previous period</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Average Order Value</h6>
+                    <h3 id="avgOrderValue">INR 0</h3>
+                    <small id="aovChange">+0% from previous period</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Conversion Rate</h6>
+                    <h3 id="conversionRate">0%</h3>
+                    <small id="conversionChange">+0% from previous period</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Revenue Trend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Sales by Category</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products and Customers -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top Selling Products</h5>
+                </div>
+                <div class="card-body">
+                    <div id="topProducts">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentOrders">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Stats Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Performance Metrics</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Current Period</th>
+                            <th>Previous Period</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody id="metricsTable">
+                        <tr>
+                            <td colspan="4" class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2">Loading metrics...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let analyticsData = {};
+let revenueChart = null;
+let categoryChart = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAnalytics();
+    
+    // Period filter change
+    document.getElementById('periodFilter').addEventListener('change', loadAnalytics);
+});
+
+async function loadAnalytics() {
+    const period = document.getElementById('periodFilter').value;
+    
+    try {
+        const response = await fetch(`/api/sellers/analytics/?period=${period}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            analyticsData = await response.json();
+            updateOverviewCards();
+            updateCharts();
+            updateTopProducts();
+            updateRecentOrders();
+            updateMetricsTable();
+        } else {
+            console.error('Failed to load analytics data');
+        }
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+    }
+}
+
+function updateOverviewCards() {
+    document.getElementById('totalRevenue').textContent = `INR ${analyticsData.total_revenue || 0}`;
+    document.getElementById('totalOrders').textContent = analyticsData.total_orders || 0;
+    document.getElementById('avgOrderValue').textContent = `INR ${analyticsData.avg_order_value || 0}`;
+    document.getElementById('conversionRate').textContent = `${analyticsData.conversion_rate || 0}%`;
+    
+    // Update change indicators
+    updateChangeIndicator('revenueChange', analyticsData.revenue_change);
+    updateChangeIndicator('ordersChange', analyticsData.orders_change);
+    updateChangeIndicator('aovChange', analyticsData.aov_change);
+    updateChangeIndicator('conversionChange', analyticsData.conversion_change);
+}
+
+function updateChangeIndicator(elementId, change) {
+    const element = document.getElementById(elementId);
+    if (!change) {
+        element.textContent = 'No data from previous period';
+        return;
+    }
+    
+    const isPositive = change >= 0;
+    const icon = isPositive ? '↑' : '↓';
+    const color = isPositive ? 'text-success' : 'text-danger';
+    
+    element.innerHTML = `<span class="${color}">${icon} ${Math.abs(change)}% from previous period</span>`;
+}
+
+function updateCharts() {
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    if (revenueChart) revenueChart.destroy();
+    
+    revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: analyticsData.revenue_trend?.labels || [],
+            datasets: [{
+                label: 'Revenue',
+                data: analyticsData.revenue_trend?.data || [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'INR ' + value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    if (categoryChart) categoryChart.destroy();
+    
+    categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: analyticsData.sales_by_category?.labels || [],
+            datasets: [{
+                data: analyticsData.sales_by_category?.data || [],
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function updateTopProducts() {
+    const container = document.getElementById('topProducts');
+    const products = analyticsData.top_products || [];
+    
+    if (products.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No products sold in this period</p>';
+        return;
+    }
+    
+    container.innerHTML = products.map((product, index) => `
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center">
+                <span class="badge bg-secondary me-2">${index + 1}</span>
+                <div>
+                    <div class="fw-bold">${product.name}</div>
+                    <small class="text-muted">${product.sales} units sold</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="fw-bold">INR ${product.revenue}</div>
+                <small class="text-muted">${product.orders} orders</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateRecentOrders() {
+    const container = document.getElementById('recentOrders');
+    const orders = analyticsData.recent_orders || [];
+    
+    if (orders.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No recent orders</p>';
+        return;
+    }
+    
+    container.innerHTML = orders.map(order => `
+        <div class="border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">Order #${order.id}</h6>
+                    <p class="mb-1 text-muted">${order.customer_name}</p>
+                    <small class="text-muted">${new Date(order.created_at).toLocaleDateString()}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-${getOrderStatusColor(order.status)}">${order.status}</span>
+                    <p class="mb-0 mt-1"><strong>INR ${order.total}</strong></p>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateMetricsTable() {
+    const tbody = document.getElementById('metricsTable');
+    const metrics = analyticsData.performance_metrics || [];
+    
+    if (metrics.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No metrics available</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = metrics.map(metric => `
+        <tr>
+            <td><strong>${metric.name}</strong></td>
+            <td>${metric.current}</td>
+            <td>${metric.previous}</td>
+            <td>
+                ${metric.change !== null ? `
+                    <span class="${metric.change >= 0 ? 'text-success' : 'text-danger'}">
+                        ${metric.change >= 0 ? '↑' : '↓'} ${Math.abs(metric.change)}%
+                    </span>
+                ` : '-'}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getOrderStatusColor(status) {
+    const colors = {
+        'pending': 'warning',
+        'confirmed': 'info',
+        'processing': 'primary',
+        'shipped': 'secondary',
+        'delivered': 'success',
+        'cancelled': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}

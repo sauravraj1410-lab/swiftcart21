@@ -1,0 +1,298 @@
+﻿{% extends 'core/base.html' %}
+
+{% block title %}{{ product.name }} - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Product Images -->
+            <div class="mb-4">
+                {% if product.images.all %}
+                    <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for image in product.images.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ image.image.url }}" class="d-block w-100" alt="{{ image.alt_text|default:product.name }}" style="height: 400px; object-fit: cover;">
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if product.images.all|length > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <i class="fas fa-image fa-5x text-muted"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Details -->
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="h3 mb-3">{{ product.name }}</h1>
+                    
+                    <div class="mb-3">
+                        <span class="badge bg-primary">{{ product.category.name }}</span>
+                        {% if product.featured %}
+                            <span class="badge bg-warning">Featured</span>
+                        {% endif %}
+                        {% if product.digital %}
+                            <span class="badge bg-info">Digital</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <p>{{ product.description|safe|default:product.short_description }}</p>
+                    </div>
+
+                    {% if product.weight %}
+                    <div class="mb-3">
+                        <strong>Weight:</strong> {{ product.weight }} kg
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <strong>SKU:</strong> {{ product.sku }}
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Stock Status:</strong>
+                        {% if product.is_in_stock %}
+                            <span class="badge bg-success">In Stock ({{ product.quantity }} available)</span>
+                        {% else %}
+                            <span class="badge bg-danger">Out of Stock</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Purchase Card -->
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <!-- Price -->
+                    <div class="text-center mb-4">
+                        {% if product.compare_price %}
+                            <div class="text-muted text-decoration-line-through">INR {{ product.compare_price }}</div>
+                            <div class="h3 text-success fw-bold">INR {{ product.price }}</div>
+                            {% if product.discount_percentage > 0 %}
+                                <div class="badge bg-danger">{{ product.discount_percentage }}% OFF</div>
+                            {% endif %}
+                        {% else %}
+                            <div class="h3 text-primary fw-bold">INR {{ product.price }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Add to Cart -->
+                    <form id="addToCartForm" class="mb-3">
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" max="{{ product.quantity }}" {% if not product.is_in_stock %}disabled{% endif %}>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="addToCart('{{ product.id }}')" {% if not product.is_in_stock %}disabled{% endif %}>
+                                <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                            </button>
+
+                            <button type="button" class="btn btn-success btn-lg" onclick="goToCheckout('{{ product.id }}')" {% if not product.is_in_stock %}disabled{% endif %}>
+                                <i class="fas fa-bolt me-2"></i>Buy Product
+                            </button>
+                            
+                            <a href="{% url 'products' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Product Info -->
+                    <div class="border-top pt-3">
+                        <h6 class="mb-3">Product Information</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                {% if product.digital %}Digital Product{% else %}Physical Product{% endif %}
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                {% if product.track_inventory %}Inventory Tracked{% else %}Unlimited Stock{% endif %}
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Secure Payment
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Fast Delivery
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId) {
+    var quantity = parseInt(document.getElementById('quantity').value) || 1;
+
+    fetch('/api/cart/add/', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+            'product_id': productId,
+            'quantity': quantity
+        })
+    })
+    .then(async function(response) {
+        const data = await parseResponseData(response);
+        if (response.status === 401 || response.status === 403) {
+            showNotification('Please login to add products to cart', 'warning');
+            setTimeout(function() {
+                window.location.href = '{% url "login" %}';
+            }, 1200);
+            return;
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to add product to cart');
+        }
+
+        showNotification(data.message || 'Product added to cart', 'success');
+        updateCartUI();
+    })
+    .catch(function(error) {
+        console.error('Error adding to cart:', error);
+        showNotification(error.message || 'Failed to add product to cart', 'error');
+    });
+}
+
+function goToCheckout(productId) {
+    const userAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const hasToken = !!localStorage.getItem('access_token');
+    if (!userAuthenticated && !hasToken) {
+        showNotification('Please login to buy this product', 'warning');
+        setTimeout(function() {
+            window.location.href = '{% url "login" %}';
+        }, 1500);
+        return;
+    }
+
+    const quantityValue = parseInt(document.getElementById('quantity').value || '1', 10);
+    const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+    window.location.href = `/checkout/${productId}/details/?quantity=${encodeURIComponent(quantity)}`;
+}
+
+function updateCartUI() {
+    fetch('/api/cart/', {
+        headers: getAuthHeaders(false)
+    })
+        .then(function(response) {
+            if (!response.ok) {
+                return {};
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            const cartBadge = document.querySelector('.cart-badge');
+            if (cartBadge) {
+                const totalItems = Number(data.total_items || 0);
+                cartBadge.textContent = totalItems;
+                cartBadge.style.display = totalItems > 0 ? 'inline-block' : 'none';
+            }
+        })
+        .catch(function() {
+            const cartBadge = document.querySelector('.cart-badge');
+            if (cartBadge) {
+                cartBadge.textContent = '0';
+                cartBadge.style.display = 'none';
+            }
+        });
+}
+
+function getAuthHeaders(isJson) {
+    const headers = {};
+    if (isJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const csrfToken = getCookie('csrftoken') || getCsrfFromDom();
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    const isSessionAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const accessToken = localStorage.getItem('access_token');
+    if (!isSessionAuthenticated && accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+}
+
+function getCsrfFromDom() {
+    const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return tokenInput ? tokenInput.value : '';
+}
+
+function parseResponseData(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        return response.json();
+    }
+    return Promise.resolve({});
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    // Simple notification system
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-' + type + ' alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(function() {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateCartUI();
+});
+</script>
+{% endblock %}
+
+
+

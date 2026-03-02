@@ -1,0 +1,207 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Seller Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Seller Dashboard</h2>
+        <div>
+            <a href="/seller/products/add/" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Product
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <h2 id="totalProducts">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Orders</h5>
+                    <h2 id="totalOrders">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue</h5>
+                    <h2 id="totalRevenue">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Orders</h5>
+                    <h2 id="pendingOrders">-</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentOrders">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading orders...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/seller/products/" class="btn btn-outline-primary">
+                            <i class="fas fa-box me-2"></i>Manage Products
+                        </a>
+                        <a href="/seller/orders/" class="btn btn-outline-success">
+                            <i class="fas fa-shopping-bag me-2"></i>View All Orders
+                        </a>
+                        <a href="/seller/analytics/" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-2"></i>Sales Analytics
+                        </a>
+                        <a href="/seller/profile/" class="btn btn-outline-secondary">
+                            <i class="fas fa-store me-2"></i>Seller Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Top Products</h5>
+                </div>
+                <div class="card-body">
+                    <div id="topProducts">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading products...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let dashboardData = {};
+
+async function loadDashboardData() {
+    try {
+        const response = await fetch('/api/sellers/dashboard/', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            dashboardData = await response.json();
+            updateStats();
+            renderRecentOrders();
+            renderTopProducts();
+        } else {
+            console.error('Failed to load dashboard data');
+        }
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+function updateStats() {
+    document.getElementById('totalProducts').textContent = dashboardData.total_products || 0;
+    document.getElementById('totalOrders').textContent = dashboardData.total_orders || 0;
+    document.getElementById('totalRevenue').textContent = 'INR ' + (dashboardData.total_revenue || 0);
+    document.getElementById('pendingOrders').textContent = dashboardData.pending_orders || 0;
+}
+
+function renderRecentOrders() {
+    const container = document.getElementById('recentOrders');
+    const orders = dashboardData.recent_orders || [];
+    
+    if (orders.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No recent orders</p>';
+        return;
+    }
+    
+    container.innerHTML = orders.map(order => `
+        <div class="border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">Order #${order.id}</h6>
+                    <p class="mb-1 text-muted">${order.customer_name}</p>
+                    <small class="text-muted">${new Date(order.created_at).toLocaleDateString()}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-${getOrderStatusColor(order.status)}">${order.status}</span>
+                    <p class="mb-0 mt-1"><strong>INR ${order.total}</strong></p>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderTopProducts() {
+    const container = document.getElementById('topProducts');
+    const products = dashboardData.top_products || [];
+    
+    if (products.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No products yet</p>';
+        return;
+    }
+    
+    container.innerHTML = products.map((product, index) => `
+        <div class="d-flex align-items-center mb-2">
+            <span class="badge bg-secondary me-2">${index + 1}</span>
+            <div class="flex-grow-1">
+                <h6 class="mb-0">${product.name}</h6>
+                <small class="text-muted">${product.sales} sold</small>
+            </div>
+            <strong>INR ${product.revenue}</strong>
+        </div>
+    `).join('');
+}
+
+function getOrderStatusColor(status) {
+    const colors = {
+        'pending': 'warning',
+        'confirmed': 'info',
+        'processing': 'primary',
+        'shipped': 'secondary',
+        'delivered': 'success',
+        'cancelled': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+// Load dashboard data when page loads
+document.addEventListener('DOMContentLoaded', loadDashboardData);
+</script>
+{% endblock %}

@@ -1,0 +1,500 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Seller Orders{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manage Orders</h2>
+        <div>
+            <button class="btn btn-outline-primary" onclick="exportOrders()">
+                <i class="fas fa-download me-2"></i>Export Orders
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <select class="form-select" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" id="dateFilter">
+                <option value="">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input type="text" class="form-control" id="searchOrders" placeholder="Search by order ID or customer...">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                            </th>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTable">
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2">Loading orders...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Bulk Actions -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div id="bulkActions" style="display: none;">
+                    <select class="form-select form-select-sm d-inline-block w-auto me-2" id="bulkAction">
+                        <option value="">Bulk actions...</option>
+                        <option value="confirm">Confirm Orders</option>
+                        <option value="process">Mark as Processing</option>
+                        <option value="ship">Mark as Shipped</option>
+                        <option value="cancel">Cancel Orders</option>
+                    </select>
+                    <button class="btn btn-sm btn-primary" onclick="applyBulkAction()">Apply</button>
+                </div>
+                <div id="pagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="orderDetailsContent">
+                <!-- Order details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="updateStatusBtn" onclick="showUpdateStatusModal()">
+                    Update Status
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Order Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateStatusForm">
+                    <div class="mb-3">
+                        <label for="newStatus" class="form-label">New Status</label>
+                        <select class="form-select" id="newStatus" required>
+                            <option value="">Select status...</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="trackingSection" style="display: none;">
+                        <label for="trackingNumber" class="form-label">Tracking Number</label>
+                        <input type="text" class="form-control" id="trackingNumber" placeholder="Enter tracking number">
+                    </div>
+                    <div class="mb-3">
+                        <label for="statusNote" class="form-label">Note (Optional)</label>
+                        <textarea class="form-control" id="statusNote" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateOrderStatus()">Update Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let orders = [];
+let selectedOrders = new Set();
+let currentOrder = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadOrders();
+    
+    // Event listeners
+    document.getElementById('statusFilter').addEventListener('change', renderOrders);
+    document.getElementById('dateFilter').addEventListener('change', renderOrders);
+    document.getElementById('searchOrders').addEventListener('input', renderOrders);
+    
+    // Status change listener for tracking field
+    document.getElementById('newStatus').addEventListener('change', (e) => {
+        const trackingSection = document.getElementById('trackingSection');
+        trackingSection.style.display = e.target.value === 'shipped' ? 'block' : 'none';
+    });
+});
+
+async function loadOrders() {
+    try {
+        const response = await fetch('/api/sellers/orders/', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            orders = await response.json();
+            renderOrders();
+        } else {
+            document.getElementById('ordersTable').innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <p class="text-muted">Unable to load orders. Please try again.</p>
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading orders:', error);
+    }
+}
+
+function renderOrders() {
+    const tbody = document.getElementById('ordersTable');
+    const statusFilter = document.getElementById('statusFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const searchTerm = document.getElementById('searchOrders').value.toLowerCase();
+    
+    let filteredOrders = orders.filter(order => {
+        if (statusFilter && order.status !== statusFilter) return false;
+        if (searchTerm && !order.id.toString().includes(searchTerm) && 
+            !order.customer_name.toLowerCase().includes(searchTerm)) return false;
+        if (dateFilter) {
+            const orderDate = new Date(order.created_at);
+            const now = new Date();
+            
+            switch(dateFilter) {
+                case 'today':
+                    return orderDate.toDateString() === now.toDateString();
+                case 'week':
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    return orderDate >= weekAgo;
+                case 'month':
+                    return orderDate.getMonth() === now.getMonth() && 
+                           orderDate.getFullYear() === now.getFullYear();
+                case 'year':
+                    return orderDate.getFullYear() === now.getFullYear();
+            }
+        }
+        return true;
+    });
+    
+    if (filteredOrders.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <i class="fas fa-shopping-bag fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No orders found</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = filteredOrders.map(order => `
+        <tr>
+            <td>
+                <input type="checkbox" class="order-checkbox" value="${order.id}" 
+                       onchange="toggleOrderSelection(${order.id})">
+            </td>
+            <td>
+                <strong>#${order.id}</strong>
+            </td>
+            <td>${new Date(order.created_at).toLocaleDateString()}</td>
+            <td>
+                <div>
+                    <div class="fw-bold">${order.customer_name}</div>
+                    <small class="text-muted">${order.customer_email}</small>
+                </div>
+            </td>
+            <td>${order.items?.length || 0} items</td>
+            <td><strong>INR ${order.total_amount}</strong></td>
+            <td>
+                <span class="badge bg-${getStatusColor(order.status)}">${order.status}</span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="viewOrderDetails(${order.id})" title="View">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-info" onclick="printOrder(${order.id})" title="Print">
+                        <i class="fas fa-print"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'pending': 'warning',
+        'confirmed': 'info',
+        'processing': 'primary',
+        'shipped': 'secondary',
+        'delivered': 'success',
+        'cancelled': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+function toggleOrderSelection(orderId) {
+    if (selectedOrders.has(orderId)) {
+        selectedOrders.delete(orderId);
+    } else {
+        selectedOrders.add(orderId);
+    }
+    updateBulkActions();
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.order-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+        const orderId = parseInt(checkbox.value);
+        if (selectAll.checked) {
+            selectedOrders.add(orderId);
+        } else {
+            selectedOrders.delete(orderId);
+        }
+    });
+    
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const bulkActions = document.getElementById('bulkActions');
+    if (selectedOrders.size > 0) {
+        bulkActions.style.display = 'block';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+async function applyBulkAction() {
+    const action = document.getElementById('bulkAction').value;
+    if (!action) return;
+    
+    if (action === 'cancel' && !confirm(`Are you sure you want to cancel ${selectedOrders.size} order(s)?`)) {
+        return;
+    }
+    
+    try {
+        for (const orderId of selectedOrders) {
+            const response = await fetch(`/api/sellers/orders/${orderId}/status/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: action === 'confirm' ? 'confirmed' : 
+                           action === 'process' ? 'processing' : 
+                           action === 'ship' ? 'shipped' : 'cancelled'
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update order ${orderId}`);
+            }
+        }
+        
+        await loadOrders();
+        selectedOrders.clear();
+        updateBulkActions();
+        alert(`Successfully updated ${selectedOrders.size} order(s)`);
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function viewOrderDetails(orderId) {
+    try {
+        const response = await fetch(`/api/sellers/orders/${orderId}/`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            currentOrder = await response.json();
+            const modal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+            document.getElementById('orderDetailsContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Order Information</h6>
+                        <p><strong>Order ID:</strong> #${currentOrder.id}</p>
+                        <p><strong>Date:</strong> ${new Date(currentOrder.created_at).toLocaleString()}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(currentOrder.status)}">${currentOrder.status}</span></p>
+                        <p><strong>Total Amount:</strong> INR ${currentOrder.total_amount}</p>
+                        ${currentOrder.tracking_number ? `<p><strong>Tracking:</strong> ${currentOrder.tracking_number}</p>` : ''}
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Customer Information</h6>
+                        <p><strong>Name:</strong> ${currentOrder.customer_name}</p>
+                        <p><strong>Email:</strong> ${currentOrder.customer_email}</p>
+                        <p><strong>Phone:</strong> ${currentOrder.customer_phone || 'N/A'}</p>
+                    </div>
+                </div>
+                <hr>
+                <h6>Shipping Address</h6>
+                <p>${currentOrder.shipping_address?.first_name} ${currentOrder.shipping_address?.last_name}</p>
+                <p>${currentOrder.shipping_address?.address_line_1}</p>
+                ${currentOrder.shipping_address?.address_line_2 ? `<p>${currentOrder.shipping_address.address_line_2}</p>` : ''}
+                <p>${currentOrder.shipping_address?.city}, ${currentOrder.shipping_address?.state} ${currentOrder.shipping_address?.postal_code}</p>
+                <p>${currentOrder.shipping_address?.country}</p>
+                <hr>
+                <h6>Order Items</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${currentOrder.items?.map(item => `
+                                <tr>
+                                    <td>${item.product_name}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>INR ${item.price}</td>
+                                    <td>INR ${item.total}</td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="4">No items found</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            modal.show();
+        } else {
+            alert('Error loading order details');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+function showUpdateStatusModal() {
+    if (!currentOrder) return;
+    
+    document.getElementById('newStatus').value = '';
+    document.getElementById('trackingNumber').value = '';
+    document.getElementById('statusNote').value = '';
+    document.getElementById('trackingSection').style.display = 'none';
+    
+    bootstrap.Modal.getInstance(document.getElementById('orderDetailsModal')).hide();
+    new bootstrap.Modal(document.getElementById('updateStatusModal')).show();
+}
+
+async function updateOrderStatus() {
+    if (!currentOrder) return;
+    
+    const newStatus = document.getElementById('newStatus').value;
+    const trackingNumber = document.getElementById('trackingNumber').value;
+    const note = document.getElementById('statusNote').value;
+    
+    if (!newStatus) {
+        alert('Please select a new status');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/sellers/orders/${currentOrder.id}/status/`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: newStatus,
+                tracking_number: trackingNumber,
+                note: note
+            })
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('updateStatusModal')).hide();
+            await loadOrders();
+            alert('Order status updated successfully!');
+        } else {
+            const data = await response.json();
+            alert('Error: ' + JSON.stringify(data));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+function printOrder(orderId) {
+    // TODO: Implement print functionality
+    alert('Print functionality coming soon!');
+}
+
+function exportOrders() {
+    // TODO: Implement export functionality
+    alert('Export functionality coming soon!');
+}
+
+function resetFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    document.getElementById('searchOrders').value = '';
+    renderOrders();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,372 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Add Product{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Add New Product</h2>
+            <p class="text-muted">Fill in the details below to add a new product to your store.</p>
+        </div>
+    </div>
+
+    <form id="addProductForm" enctype="multipart/form-data">
+        <!-- Basic Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Basic Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label for="productName" class="form-label">Product Name *</label>
+                        <input type="text" class="form-control" id="productName" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="productSku" class="form-label">SKU *</label>
+                        <input type="text" class="form-control" id="productSku" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="productSlug" class="form-label">Slug</label>
+                    <input type="text" class="form-control" id="productSlug" placeholder="auto-generated from name">
+                </div>
+                <div class="mb-3">
+                    <label for="productDescription" class="form-label">Description *</label>
+                    <textarea class="form-control" id="productDescription" rows="4" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="productCategory" class="form-label">Category *</label>
+                        <select class="form-select" id="productCategory" required>
+                            <option value="">Select category...</option>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="testCategories()">Test Categories</button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="productPrice" class="form-label">Price (INR) *</label>
+                        <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="productComparePrice" class="form-label">Compare Price (INR)</label>
+                        <input type="number" class="form-control" id="productComparePrice" step="0.01" min="0">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="productStock" class="form-label">Stock Quantity</label>
+                        <input type="number" class="form-control" id="productStock" min="0" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Options -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Product Options</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="productFeatured">
+                            <label class="form-check-label" for="productFeatured">
+                                Featured Product
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="productDigital">
+                            <label class="form-check-label" for="productDigital">
+                                Digital Product
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="codAvailable" checked>
+                            <label class="form-check-label" for="codAvailable">
+                                COD Available
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="sellerUpiId" class="form-label">Seller UPI ID</label>
+                        <input type="text" class="form-control" id="sellerUpiId" placeholder="yourupi@paytm">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="productStatus" class="form-label">Status</label>
+                        <select class="form-select" id="productStatus">
+                            <option value="active">Active</option>
+                            <option value="draft">Draft</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Image -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Product Image</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="productImages" class="form-label">Upload Image</label>
+                    <input type="file" class="form-control" id="productImages" accept="image/*">
+                    <small class="form-text text-muted">Upload one image for this product.</small>
+                </div>
+                <div id="imagePreview" class="row"></div>
+            </div>
+        </div>
+
+        <!-- Product Variants - REMOVED -->
+        <!-- Variants functionality disabled as requested -->
+
+        <!-- SEO & Meta -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">SEO & Meta</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="metaTitle" class="form-label">Meta Title</label>
+                    <input type="text" class="form-control" id="metaTitle">
+                </div>
+                <div class="mb-3">
+                    <label for="metaDescription" class="form-label">Meta Description</label>
+                    <textarea class="form-control" id="metaDescription" rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Product
+                </button>
+                <button type="button" class="btn btn-secondary ms-2" onclick="saveAsDraft()">
+                    <i class="fas fa-file-alt me-2"></i>Save as Draft
+                </button>
+                <a href="{% url 'seller_products' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let categories = [];
+let variants = [];
+
+// Load categories on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadCategories();
+    
+    // Auto-generate slug from name
+    document.getElementById('productName').addEventListener('input', (e) => {
+        const slug = e.target.value.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+        document.getElementById('productSlug').value = slug;
+    });
+    
+    // Handle image preview
+    document.getElementById('productImages').addEventListener('change', handleImagePreview);
+    
+    // Handle form submission
+    document.getElementById('addProductForm').addEventListener('submit', handleSubmit);
+});
+
+async function loadCategories() {
+    try {
+        let token = localStorage.getItem('access_token');
+        console.log('Access token:', token);
+        
+        if (!token) {
+            console.error('No access token found');
+            alert('Please login again to add products');
+            window.location.href = '{% url "login" %}';
+            return;
+        }
+        
+        const response = await fetch('/api/products/categories/', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+            categories = await response.json();
+            console.log('Categories loaded:', categories);
+            const select = document.getElementById('productCategory');
+            select.innerHTML = '<option value="">Select category...</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                select.appendChild(option);
+            });
+        } else if (response.status === 401) {
+            console.error('Token expired or invalid');
+            alert('Your session has expired. Please login again.');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '{% url "login" %}';
+        } else {
+            console.error('Failed to load categories:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+function testCategories() {
+    console.log('Testing categories manually...');
+    const select = document.getElementById('productCategory');
+    
+    // Add some test categories manually
+    const testCategories = [
+        { id: 1, name: 'Electronics' },
+        { id: 2, name: 'Fashion' },
+        { id: 3, name: 'Food' },
+        { id: 4, name: 'Appliances (Rasan)' }
+    ];
+    
+    select.innerHTML = '<option value="">Select category...</option>';
+    testCategories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
+    });
+    
+    console.log('Test categories added to dropdown');
+}
+
+function handleImagePreview(e) {
+    const file = e.target.files && e.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    if (!file) {
+        return;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'col-md-3 mb-3';
+    div.innerHTML = `
+        <div class="position-relative">
+            <img src="${URL.createObjectURL(file)}" class="img-fluid rounded" alt="Preview">
+            <span class="badge bg-primary position-absolute top-0 start-0 m-1">Primary</span>
+        </div>
+    `;
+    preview.appendChild(div);
+}
+
+    // Variants functionality removed
+    // addVariant, removeVariant functions no longer needed
+
+async function handleSubmit(e) {
+    e.preventDefault();
+    
+    console.log('Form submission started...');
+    
+    let token = localStorage.getItem('access_token');
+    console.log('Access token:', token);
+    
+    if (!token) {
+        console.error('No access token found');
+        alert('Please login again to add products');
+        window.location.href = '{% url "login" %}';
+        return;
+    }
+    
+    const formData = new FormData();
+    
+    // Basic product data
+    const categoryValue = document.getElementById('productCategory').value;
+    const fullDescription = document.getElementById('productDescription').value.trim();
+    const shortDescription = fullDescription.length > 500
+        ? `${fullDescription.slice(0, 497).trim()}...`
+        : fullDescription;
+    console.log('Selected category:', categoryValue);
+    console.log('Form data being prepared...');
+    
+    formData.append('name', document.getElementById('productName').value);
+    formData.append('sku', document.getElementById('productSku').value);
+    formData.append('slug', document.getElementById('productSlug').value);
+    formData.append('description', fullDescription);
+    formData.append('short_description', shortDescription);
+    formData.append('category', categoryValue);
+    formData.append('price', document.getElementById('productPrice').value);
+    formData.append('compare_price', document.getElementById('productComparePrice').value);
+    formData.append('featured', document.getElementById('productFeatured').checked);
+    formData.append('digital', document.getElementById('productDigital').checked);
+    formData.append('cod_available', document.getElementById('codAvailable').checked);
+    formData.append('seller_upi_id', document.getElementById('sellerUpiId').value);
+    formData.append('status', document.getElementById('productStatus').value);
+    formData.append('quantity', document.getElementById('productStock').value);
+    formData.append('meta_title', document.getElementById('metaTitle').value);
+    formData.append('meta_description', document.getElementById('metaDescription').value);
+    
+    // Image
+    const imageFile = document.getElementById('productImages').files[0];
+    console.log('Image selected:', !!imageFile);
+    if (imageFile) {
+        formData.append('image', imageFile);
+    }
+    
+    // Variants functionality removed - no longer sending variants
+    
+    console.log('Sending request to /api/products/create/');
+    console.log('Authorization token:', token);
+    
+    try {
+        const response = await fetch('/api/products/create/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Success response:', result);
+            alert('Product added successfully!');
+            window.location.href = '{% url "seller_products" %}';
+        } else if (response.status === 401) {
+            console.error('Token expired or invalid');
+            alert('Your session has expired. Please login again.');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '{% url "login" %}';
+        } else {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            alert('Error: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Network/JavaScript error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+function saveAsDraft() {
+    document.getElementById('productStatus').value = 'draft';
+    document.getElementById('addProductForm').dispatchEvent(new Event('submit'));
+}
+</script>
+{% endblock %}

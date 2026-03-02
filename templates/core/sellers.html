@@ -1,0 +1,157 @@
+﻿{% extends 'core/base.html' %}
+
+{% block title %}Sellers - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold">Featured Sellers</h1>
+                <p class="lead text-muted">Trusted sellers on our platform</p>
+            </div>
+            
+            {% if featured_sellers %}
+                <div class="row g-4" id="sellersContainer">
+                    {% for seller in featured_sellers %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card seller-card h-100">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    {% if seller.store_logo %}
+                                        <img src="{{ seller.store_logo.url }}" class="rounded-circle" alt="{{ seller.store_name }}" style="width: 80px; height: 80px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                            <i class="fas fa-store fa-2x text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <h5 class="card-title">{{ seller.store_name|default:seller.business_name }}</h5>
+                                <p class="card-text text-muted small">{{ seller.business_description|truncatechars:75 }}</p>
+                                
+                                <div class="mb-3">
+                                    {% if seller.rating %}
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <div class="text-warning me-2">
+                                            {% for i in seller.rating|floatformat:0|make_list %}
+                                            <i class="fas fa-star"></i>
+                                            {% endfor %}
+                                            {% for i in seller.rating|floatformat:0|make_list %}
+                                            <i class="far fa-star"></i>
+                                            {% endfor %}
+                                        </div>
+                                        <span class="badge bg-secondary">{{ seller.rating|floatformat:1 }}/5.0</span>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <span class="badge bg-secondary">New Seller</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="text-muted small mb-3">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ seller.business_city }}, {{ seller.business_country }}
+                                    {% if seller.total_products %}
+                                    <br><i class="fas fa-box me-1"></i>{{ seller.total_products }} Products
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <a href="/sellers/{{ seller.id }}/" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>View Store
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No featured sellers available at the moment.
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Seller Benefits Section -->
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="text-center mb-4">
+                        <h2>Why Sell With Us?</h2>
+                        <p class="text-muted">Join thousands of successful sellers on our platform</p>
+                    </div>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-rocket fa-3x text-primary"></i>
+                                    </div>
+                                    <h5>Fast Setup</h5>
+                                    <p class="text-muted small">Get your store up and running in minutes</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-chart-line fa-3x text-success"></i>
+                                    </div>
+                                    <h5>Analytics</h5>
+                                    <p class="text-muted small">Track your sales and performance with detailed analytics</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-shield-alt fa-3x text-warning"></i>
+                                    </div>
+                                    <h5>Secure Payments</h5>
+                                    <p class="text-muted small">Secure and timely payment processing</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-headset fa-3x text-info"></i>
+                                    </div>
+                                    <h5>24/7 Support</h5>
+                                    <p class="text-muted small">Get help whenever you need it</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load sellers via API if needed
+document.addEventListener('DOMContentLoaded', function() {
+    // Sellers are loaded server-side, but we could also load via API
+    console.log('Sellers page loaded');
+});
+</script>
+{% endblock %}
+

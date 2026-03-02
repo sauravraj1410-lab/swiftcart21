@@ -1,0 +1,256 @@
+﻿{% extends 'core/base.html' %}
+
+{% block title %}Register - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Important:</strong> After registration, a 6-digit OTP will be sent to your email for verification.
+                </div>
+                
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </h3>
+                    
+                    <form id="registrationForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password_confirm" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="(555) 123-4567 or +15551234567">
+                            </div>
+                            <small class="text-muted">You can enter local format or full international number.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="date_of_birth" class="form-label">Date of Birth (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="agree_terms" required>
+                                <label class="form-check-label" for="agree_terms">
+                                    I agree to the <a href="{% url 'terms' %}" target="_blank">Terms and Conditions</a> 
+                                    and <a href="{% url 'privacy' %}" target="_blank">Privacy Policy</a>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="registerBtn">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('registrationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const phone = (formData.get('phone') || '').trim();
+    const normalizedPhone = normalizePhoneForApi(phone);
+    const dateOfBirth = (formData.get('date_of_birth') || '').trim();
+    const data = {
+        email: formData.get('email'),
+        first_name: formData.get('first_name'),
+        last_name: formData.get('last_name'),
+        password: formData.get('password'),
+        password_confirm: formData.get('password_confirm')
+    };
+
+    if (normalizedPhone) {
+        data.phone = normalizedPhone;
+    }
+    if (dateOfBirth) {
+        data.date_of_birth = dateOfBirth;
+    }
+    
+    // Validate passwords match
+    if (data.password !== data.password_confirm) {
+        showNotification('Passwords do not match!', 'error');
+        return;
+    }
+    
+    // Check terms agreement
+    if (!document.getElementById('agree_terms').checked) {
+        showNotification('Please agree to the terms and conditions.', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const registerBtn = document.getElementById('registerBtn');
+    const originalText = registerBtn.innerHTML;
+    registerBtn.innerHTML = '<span class="loading-spinner"></span> Creating Account...';
+    registerBtn.disabled = true;
+    
+    fetch('/api/auth/register/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(async response => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const messages = [];
+
+            if (Array.isArray(payload.error_messages)) {
+                messages.push(...payload.error_messages);
+            } else if (payload.errors && typeof payload.errors === 'object') {
+                Object.entries(payload.errors).forEach(([field, value]) => {
+                    const values = Array.isArray(value) ? value : [value];
+                    values.forEach(msg => messages.push(`${field.replace(/_/g, ' ')}: ${msg}`));
+                });
+            }
+
+            const errorText = messages.length
+                ? messages.join('\n')
+                : (payload.error || payload.message || 'Registration failed');
+
+            throw new Error(errorText);
+        }
+        return payload;
+    })
+    .then(data => {
+        if (data.access) {
+            showNotification('Registration successful! Please check your email for verification.', 'success');
+            // Store tokens
+            localStorage.setItem('access_token', data.access);
+            localStorage.setItem('refresh_token', data.refresh);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Redirect to dashboard after delay
+            setTimeout(() => {
+                window.location.href = '/verify-email/';
+            }, 2000);
+        } else {
+            showNotification(data.message || 'Registration failed. Please try again.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Registration error:', error);
+        showNotification(error.message || 'Registration failed. Please try again.', 'error');
+    })
+    .finally(() => {
+        registerBtn.innerHTML = originalText;
+        registerBtn.disabled = false;
+    });
+});
+
+function normalizePhoneForApi(phone) {
+    if (!phone) {
+        return '';
+    }
+
+    const trimmed = phone.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    if (trimmed.startsWith('+')) {
+        const digits = trimmed.replace(/\D/g, '');
+        return digits ? `+${digits}` : '';
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (!digits) {
+        return trimmed;
+    }
+
+    // Support common US local numbers without country code.
+    if (digits.length === 10) {
+        return `+1${digits}`;
+    }
+    if (digits.length === 11 && digits.startsWith('1')) {
+        return `+${digits}`;
+    }
+
+    if (digits.length >= 8 && digits.length <= 15) {
+        return `+${digits}`;
+    }
+
+    return trimmed;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

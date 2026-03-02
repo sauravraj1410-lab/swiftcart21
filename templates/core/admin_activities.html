@@ -1,0 +1,642 @@
+{% extends 'core/admin_base.html' %}
+
+{% block title %}Activity Monitor - Admin Dashboard{% endblock %}
+
+{% block page_header %}
+<h1 class="h2">Activity Monitor</h1>
+<div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshActivities()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="exportActivities()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Activity Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Today's Activities</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_activities }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Users</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_users }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Orders</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_orders }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Confirmed Orders</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ confirmed_orders }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Management Section -->
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed Orders</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_orders }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-double fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Failed Logins</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ failed_logins }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">System Alerts</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ system_alerts }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-bell fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Management Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-warning">Order Management Actions</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <button type="button" class="btn btn-warning btn-block" onclick="managePendingOrders()">
+                    <i class="fas fa-clock me-2"></i>Manage Pending Orders
+                    <span class="badge bg-danger ms-1">{{ pending_orders }}</span>
+                </button>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <button type="button" class="btn btn-info btn-block" onclick="manageConfirmedOrders()">
+                    <i class="fas fa-check-circle me-2"></i>Manage Confirmed Orders
+                    <span class="badge bg-success ms-1">{{ confirmed_orders }}</span>
+                </button>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <button type="button" class="btn btn-success btn-block" onclick="manageCompletedOrders()">
+                    <i class="fas fa-check-double me-2"></i>View Completed Orders
+                    <span class="badge bg-primary ms-1">{{ completed_orders }}</span>
+                </button>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <button type="button" id="deleteCancelledOrdersBtn" class="btn btn-danger btn-block" onclick="deleteCancelledOrders()">
+                    <i class="fas fa-trash me-2"></i>Delete Cancelled Orders
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Activity Filters</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="activityType" class="form-label">Activity Type</label>
+                <select class="form-select" id="activityType" onchange="filterActivities()">
+                    <option value="">All Types</option>
+                    <option value="login">Login</option>
+                    <option value="logout">Logout</option>
+                    <option value="registration">Registration</option>
+                    <option value="order">Order</option>
+                    <option value="product">Product</option>
+                    <option value="seller">Seller</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="userType" class="form-label">User Type</label>
+                <select class="form-select" id="userType" onchange="filterActivities()">
+                    <option value="">All Users</option>
+                    <option value="user">Regular Users</option>
+                    <option value="seller">Sellers</option>
+                    <option value="admin">Admins</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="dateRange" class="form-label">Date Range</label>
+                <select class="form-select" id="dateRange" onchange="filterActivities()">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="week">Last 7 Days</option>
+                    <option value="month">Last 30 Days</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="searchActivity" class="form-label">Search</label>
+                <input type="text" class="form-control" id="searchActivity" placeholder="Search activities..." onkeyup="searchActivities()">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activities Table -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Recent Activities</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="activitiesTable">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Type</th>
+                        <th>IP Address</th>
+                        <th>User Agent</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="activitiesTableBody">
+                    {% for activity in activities %}
+                    <tr data-activity-row="1"
+                        data-timestamp="{{ activity.timestamp|date:'Y-m-d H:i:s' }}"
+                        data-user="{{ activity.user|default:''|escape }}"
+                        data-user-email="{{ activity.user_email|default:''|escape }}"
+                        data-action="{{ activity.action|default:''|escape }}"
+                        data-type="{{ activity.type|default:'general'|escape }}"
+                        data-user-type="{{ activity.user_type|default:'user'|escape }}"
+                        data-ip-address="{{ activity.ip_address|default:'N/A'|escape }}"
+                        data-user-agent="{{ activity.user_agent|default:'N/A'|escape }}"
+                        data-status="{{ activity.status|default:'success'|escape }}">
+                        <td>{{ activity.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <strong>{{ activity.user }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ activity.user_email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ activity.action }}</td>
+                        <td>
+                            <span class="badge {% if activity.type == 'order' %}bg-primary{% elif activity.type == 'registration' %}bg-success{% elif activity.type == 'login' %}bg-info{% elif activity.type == 'admin' %}bg-dark{% else %}bg-secondary{% endif %}">
+                                {{ activity.type|default:'general'|title }}
+                            </span>
+                        </td>
+                        <td>{{ activity.ip_address }}</td>
+                        <td>
+                            <small class="text-muted">{{ activity.user_agent|truncatechars:50 }}</small>
+                        </td>
+                        <td>
+                            {% if activity.status == 'success' %}
+                                <span class="badge bg-success">Success</span>
+                            {% elif activity.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ activity.status|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info activity-detail-btn" data-index="{{ forloop.counter0 }}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="activitiesEmptyRow" {% if activities %}style="display:none;"{% endif %}>
+                        <td colspan="8" class="text-center">No activities found</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Details Modal -->
+<div class="modal fade" id="activityDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="activityDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.activity-detail-btn')) {
+            const button = e.target.closest('.activity-detail-btn');
+            const row = button.closest('tr');
+            viewActivityDetails(row);
+        }
+    });
+
+    applyFilters();
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function getActivityRows() {
+    return Array.from(document.querySelectorAll('#activitiesTableBody tr[data-activity-row="1"]'));
+}
+
+function normalizeUserType(rawType) {
+    const userType = (rawType || '').toLowerCase();
+    if (userType === 'customer') return 'user';
+    return userType || 'user';
+}
+
+function parseActivityDate(rawDate) {
+    if (!rawDate) return null;
+    const parsed = new Date(rawDate.replace(' ', 'T'));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function inDateRange(activityDate, dateRange) {
+    if (!dateRange || dateRange === 'all') return true;
+    if (!activityDate) return false;
+
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startTomorrow = new Date(startToday);
+    startTomorrow.setDate(startTomorrow.getDate() + 1);
+
+    if (dateRange === 'today') {
+        return activityDate >= startToday && activityDate < startTomorrow;
+    }
+
+    if (dateRange === 'yesterday') {
+        const startYesterday = new Date(startToday);
+        startYesterday.setDate(startYesterday.getDate() - 1);
+        return activityDate >= startYesterday && activityDate < startToday;
+    }
+
+    if (dateRange === 'week') {
+        const last7Days = new Date(startToday);
+        last7Days.setDate(last7Days.getDate() - 7);
+        return activityDate >= last7Days;
+    }
+
+    if (dateRange === 'month') {
+        const last30Days = new Date(startToday);
+        last30Days.setDate(last30Days.getDate() - 30);
+        return activityDate >= last30Days;
+    }
+
+    return true;
+}
+
+function applyFilters() {
+    const typeFilter = (document.getElementById('activityType').value || '').toLowerCase();
+    const userTypeFilter = (document.getElementById('userType').value || '').toLowerCase();
+    const dateRange = (document.getElementById('dateRange').value || 'all').toLowerCase();
+    const searchTerm = (document.getElementById('searchActivity').value || '').toLowerCase();
+
+    const rows = getActivityRows();
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const rowType = (row.dataset.type || '').toLowerCase();
+        const rowUserType = normalizeUserType(row.dataset.userType);
+        const rowDate = parseActivityDate(row.dataset.timestamp);
+        const rowText = row.textContent.toLowerCase();
+
+        const matchesType = !typeFilter || rowType === typeFilter;
+        const matchesUserType = !userTypeFilter || rowUserType === userTypeFilter;
+        const matchesDate = inDateRange(rowDate, dateRange);
+        const matchesSearch = !searchTerm || rowText.includes(searchTerm);
+
+        const showRow = matchesType && matchesUserType && matchesDate && matchesSearch;
+        row.style.display = showRow ? '' : 'none';
+        if (showRow) {
+            visibleCount += 1;
+        }
+    });
+
+    const emptyRow = document.getElementById('activitiesEmptyRow');
+    if (emptyRow) {
+        emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+    }
+}
+
+function filterActivities() {
+    applyFilters();
+}
+
+function searchActivities() {
+    applyFilters();
+}
+
+function viewActivityDetails(row) {
+    if (!row) return;
+
+    const activity = {
+        user: row.dataset.user || '-',
+        user_email: row.dataset.userEmail || '-',
+        action: row.dataset.action || '-',
+        type: row.dataset.type || 'general',
+        status: row.dataset.status || '-',
+        timestamp: row.dataset.timestamp || '-',
+        ip_address: row.dataset.ipAddress || '-',
+        user_agent: row.dataset.userAgent || '-',
+    };
+
+    const safeEmail = (activity.user_email || '').replace(/'/g, "\\'");
+
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <p><strong>User:</strong> ${activity.user}</p>
+                <p><strong>Email:</strong> ${activity.user_email}</p>
+                <p><strong>Action:</strong> ${activity.action}</p>
+                <p><strong>Type:</strong> ${activity.type}</p>
+                <p><strong>Status:</strong> ${activity.status}</p>
+                <p><strong>Timestamp:</strong> ${activity.timestamp}</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Technical Details</h6>
+                <p><strong>IP Address:</strong> ${activity.ip_address}</p>
+                <p><strong>User Agent:</strong> ${activity.user_agent}</p>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Additional Information</h6>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This activity was logged automatically by the system for security and monitoring purposes.
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Actions</h6>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-warning" onclick="flagActivity()">
+                        <i class="fas fa-flag"></i> Flag Activity
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="blockUser('${safeEmail}')">
+                        <i class="fas fa-ban"></i> Block User
+                    </button>
+                    <button type="button" class="btn btn-info" onclick="viewUserHistory('${safeEmail}')">
+                        <i class="fas fa-history"></i> View History
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('activityDetailsContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('activityDetailsModal')).show();
+}
+
+function flagActivity() {
+    alert('Activity flagged for review.');
+}
+
+function blockUser(userEmail) {
+    if (!userEmail || userEmail === '-') {
+        alert('No user email found for this activity.');
+        return;
+    }
+    if (confirm(`Open user management for ${userEmail}?`)) {
+        window.location.href = `/admin-panel/users/?email=${encodeURIComponent(userEmail)}`;
+    }
+}
+
+function viewUserHistory(userEmail) {
+    if (!userEmail || userEmail === '-') {
+        return;
+    }
+    const searchInput = document.getElementById('searchActivity');
+    searchInput.value = userEmail;
+    applyFilters();
+    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('activityDetailsModal'));
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+}
+
+function refreshActivities() {
+    location.reload();
+}
+
+function exportActivities() {
+    const rows = getActivityRows().filter(row => row.style.display !== 'none');
+    if (!rows.length) {
+        alert('No activities available to export.');
+        return;
+    }
+
+    const header = ['Timestamp', 'User', 'Email', 'Action', 'Type', 'Status', 'IP Address'];
+    const csvRows = [header.join(',')];
+
+    rows.forEach(row => {
+        const columns = [
+            row.dataset.timestamp || '',
+            row.dataset.user || '',
+            row.dataset.userEmail || '',
+            row.dataset.action || '',
+            row.dataset.type || '',
+            row.dataset.status || '',
+            row.dataset.ipAddress || '',
+        ].map(value => `"${String(value).replace(/"/g, '""')}"`);
+        csvRows.push(columns.join(','));
+    });
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `activities-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Order Management Functions
+function managePendingOrders() {
+    window.location.href = '/admin-panel/orders/?status=pending';
+}
+
+function manageConfirmedOrders() {
+    window.location.href = '/admin-panel/orders/?status=confirmed';
+}
+
+function manageCompletedOrders() {
+    window.location.href = '/admin-panel/orders/?status=delivered';
+}
+
+async function deleteCancelledOrders() {
+    if (confirm('Are you sure you want to delete all cancelled orders? This action cannot be undone.')) {
+        const button = document.getElementById('deleteCancelledOrdersBtn');
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+        }
+
+        try {
+            const response = await fetch('/api/admin/orders/delete-cancelled/', {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || `Failed to delete cancelled orders (${response.status})`);
+            }
+
+            alert(data.message || 'Cancelled orders deleted successfully.');
+            window.location.reload();
+        } catch (error) {
+            alert(error.message || 'Failed to delete cancelled orders.');
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-trash me-2"></i>Delete Cancelled Orders';
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+﻿{% extends 'core/base.html' %}
+
+{% block title %}Privacy Policy - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-9 mx-auto">
+            <h1 class="mb-4">Privacy Policy</h1>
+            <p class="text-muted">
+                This policy explains how {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %} collects, uses, and protects your information.
+            </p>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>1. Information We Collect</h5>
+                    <p class="mb-0">
+                        We may collect account details, contact information, order history, device/browser details, and communications you send to support.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>2. How We Use Information</h5>
+                    <ul class="mb-0">
+                        <li>To create and manage your account</li>
+                        <li>To process purchases, payments, and deliveries</li>
+                        <li>To improve platform performance and security</li>
+                        <li>To send service updates and support responses</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>3. Data Sharing</h5>
+                    <p class="mb-0">
+                        We only share information with trusted service providers required to operate the platform (for example, payment and shipping partners), or where required by law.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>4. Security</h5>
+                    <p class="mb-0">
+                        We implement reasonable technical and organizational safeguards. No system is 100 percent secure, but we continuously improve our protections.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>5. Your Choices</h5>
+                    <p class="mb-0">
+                        You can review and update profile details from your account. For privacy requests, contact us using the details on the contact page.
+                    </p>
+                </div>
+            </div>
+
+            <p class="text-muted small mb-0">Last updated: February 23, 2026</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,341 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Seller Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <!-- Profile Card -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <img src="{% if user.userprofile.avatar %}{{ user.userprofile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
+                         class="rounded-circle mb-3" width="120" height="120" alt="Profile">
+                    <h5>{{ user.first_name }} {{ user.last_name }}</h5>
+                    <p class="text-muted">{{ user.email }}</p>
+                    <span class="badge bg-success">Verified Seller</span>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">Quick Stats</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 id="totalProductsStat">-</h4>
+                            <small class="text-muted">Products</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 id="totalOrdersStat">-</h4>
+                            <small class="text-muted">Orders</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 id="ratingStat">-</h4>
+                            <small class="text-muted">Rating</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 id="revenueStat">-</h4>
+                            <small class="text-muted">Revenue</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- Business Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Business Information</h5>
+                </div>
+                <div class="card-body">
+                    <form id="businessInfoForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="businessName" class="form-label">Business Name</label>
+                                <input type="text" class="form-control" id="businessName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="businessType" class="form-label">Business Type</label>
+                                <select class="form-select" id="businessType">
+                                    <option value="">Select type...</option>
+                                    <option value="individual">Individual</option>
+                                    <option value="company">Company</option>
+                                    <option value="partnership">Partnership</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="businessEmail" class="form-label">Business Email</label>
+                                <input type="email" class="form-control" id="businessEmail">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="businessPhone" class="form-label">Business Phone</label>
+                                <input type="tel" class="form-control" id="businessPhone">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="businessDescription" class="form-label">Business Description</label>
+                            <textarea class="form-control" id="businessDescription" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Business Info</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Store Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Store Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form id="storeSettingsForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="storeName" class="form-label">Store Name</label>
+                                <input type="text" class="form-control" id="storeName">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="storeUrl" class="form-label">Store URL</label>
+                                <input type="text" class="form-control" id="storeUrl" placeholder="your-store">
+                                <small class="form-text text-muted">This will be your unique store identifier</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="storeLogo" class="form-label">Store Logo</label>
+                            <input type="file" class="form-control" id="storeLogo" accept="image/*">
+                        </div>
+                        <div class="mb-3">
+                            <label for="storeBanner" class="form-label">Store Banner</label>
+                            <input type="file" class="form-control" id="storeBanner" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Store Settings</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Payment Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form id="paymentSettingsForm">
+                        <div class="mb-3">
+                            <label for="paypalEmail" class="form-label">PayPal Email</label>
+                            <input type="email" class="form-control" id="paypalEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label for="bankAccount" class="form-label">Bank Account Number</label>
+                            <input type="text" class="form-control" id="bankAccount">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="bankName" class="form-label">Bank Name</label>
+                                <input type="text" class="form-control" id="bankName">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ifscCode" class="form-label">IFSC Code</label>
+                                <input type="text" class="form-control" id="ifscCode">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Payment Settings</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Shipping Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Shipping Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form id="shippingSettingsForm">
+                        <div class="mb-3">
+                            <label for="processingTime" class="form-label">Processing Time (days)</label>
+                            <input type="number" class="form-control" id="processingTime" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="freeShippingThreshold" class="form-label">Free Shipping Threshold (INR)</label>
+                            <input type="number" class="form-control" id="freeShippingThreshold" min="0" step="0.01">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="standardShipping" class="form-label">Standard Shipping (INR)</label>
+                                <input type="number" class="form-control" id="standardShipping" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="expressShipping" class="form-label">Express Shipping (INR)</label>
+                                <input type="number" class="form-control" id="expressShipping" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Shipping Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let sellerProfile = {};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadSellerProfile();
+    await loadSellerStats();
+    
+    // Form event listeners
+    document.getElementById('businessInfoForm').addEventListener('submit', saveBusinessInfo);
+    document.getElementById('storeSettingsForm').addEventListener('submit', saveStoreSettings);
+    document.getElementById('paymentSettingsForm').addEventListener('submit', savePaymentSettings);
+    document.getElementById('shippingSettingsForm').addEventListener('submit', saveShippingSettings);
+});
+
+async function loadSellerProfile() {
+    try {
+        const response = await fetch('/api/sellers/profile/', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            sellerProfile = await response.json();
+            populateProfileForm();
+        }
+    } catch (error) {
+        console.error('Error loading seller profile:', error);
+    }
+}
+
+async function loadSellerStats() {
+    try {
+        const response = await fetch('/api/sellers/stats/', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('totalProductsStat').textContent = stats.total_products || 0;
+            document.getElementById('totalOrdersStat').textContent = stats.total_orders || 0;
+            document.getElementById('ratingStat').textContent = stats.rating ? stats.rating.toFixed(1) : 'N/A';
+            document.getElementById('revenueStat').textContent = 'INR ' + (stats.total_revenue || 0);
+        }
+    } catch (error) {
+        console.error('Error loading seller stats:', error);
+    }
+}
+
+function populateProfileForm() {
+    // Business Information
+    document.getElementById('businessName').value = sellerProfile.business_name || '';
+    document.getElementById('businessType').value = sellerProfile.business_type || '';
+    document.getElementById('businessEmail').value = sellerProfile.business_email || '';
+    document.getElementById('businessPhone').value = sellerProfile.business_phone || '';
+    document.getElementById('businessDescription').value = sellerProfile.business_description || '';
+    
+    // Store Settings
+    document.getElementById('storeName').value = sellerProfile.store_name || '';
+    document.getElementById('storeUrl').value = sellerProfile.store_url || '';
+    
+    // Payment Settings
+    document.getElementById('paypalEmail').value = sellerProfile.paypal_email || '';
+    document.getElementById('bankAccount').value = sellerProfile.bank_account || '';
+    document.getElementById('bankName').value = sellerProfile.bank_name || '';
+    document.getElementById('ifscCode').value = sellerProfile.ifsc_code || '';
+    
+    // Shipping Settings
+    document.getElementById('processingTime').value = sellerProfile.processing_time || '';
+    document.getElementById('freeShippingThreshold').value = sellerProfile.free_shipping_threshold || '';
+    document.getElementById('standardShipping').value = sellerProfile.standard_shipping || '';
+    document.getElementById('expressShipping').value = sellerProfile.express_shipping || '';
+}
+
+async function saveBusinessInfo(e) {
+    e.preventDefault();
+    
+    const formData = {
+        business_name: document.getElementById('businessName').value,
+        business_type: document.getElementById('businessType').value,
+        business_email: document.getElementById('businessEmail').value,
+        business_phone: document.getElementById('businessPhone').value,
+        business_description: document.getElementById('businessDescription').value
+    };
+    
+    await saveProfileSection('business', formData);
+}
+
+async function saveStoreSettings(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('store_name', document.getElementById('storeName').value);
+    formData.append('store_url', document.getElementById('storeUrl').value);
+    
+    const logoFile = document.getElementById('storeLogo').files[0];
+    if (logoFile) formData.append('store_logo', logoFile);
+    
+    const bannerFile = document.getElementById('storeBanner').files[0];
+    if (bannerFile) formData.append('store_banner', bannerFile);
+    
+    await saveProfileSection('store', formData);
+}
+
+async function savePaymentSettings(e) {
+    e.preventDefault();
+    
+    const formData = {
+        paypal_email: document.getElementById('paypalEmail').value,
+        bank_account: document.getElementById('bankAccount').value,
+        bank_name: document.getElementById('bankName').value,
+        ifsc_code: document.getElementById('ifscCode').value
+    };
+    
+    await saveProfileSection('payment', formData);
+}
+
+async function saveShippingSettings(e) {
+    e.preventDefault();
+    
+    const formData = {
+        processing_time: parseInt(document.getElementById('processingTime').value),
+        free_shipping_threshold: parseFloat(document.getElementById('freeShippingThreshold').value),
+        standard_shipping: parseFloat(document.getElementById('standardShipping').value),
+        express_shipping: parseFloat(document.getElementById('expressShipping').value)
+    };
+    
+    await saveProfileSection('shipping', formData);
+}
+
+async function saveProfileSection(section, data) {
+    try {
+        const response = await fetch(`/api/sellers/profile/${section}/`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                ...(data instanceof FormData ? {} : {'Content-Type': 'application/json'})
+            },
+            body: data instanceof FormData ? data : JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            alert(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
+            await loadSellerProfile();
+        } else {
+            const errorData = await response.json();
+            alert('Error: ' + JSON.stringify(errorData));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

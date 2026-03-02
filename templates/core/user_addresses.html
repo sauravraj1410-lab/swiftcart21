@@ -1,0 +1,351 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}My Addresses{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Addresses</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+            <i class="fas fa-plus me-2"></i>Add New Address
+        </button>
+    </div>
+
+    <div class="row" id="addressesList">
+        <!-- Addresses will be loaded here -->
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading addresses...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Address Modal -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAddressForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="firstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="company" class="form-label">Company (Optional)</label>
+                        <input type="text" class="form-control" id="company">
+                    </div>
+                    <div class="mb-3">
+                        <label for="addressLine1" class="form-label">Address Line 1</label>
+                        <input type="text" class="form-control" id="addressLine1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addressLine2" class="form-label">Address Line 2 (Optional)</label>
+                        <input type="text" class="form-control" id="addressLine2">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="postalCode" class="form-label">Postal Code</label>
+                            <input type="text" class="form-control" id="postalCode" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="country" class="form-label">Country</label>
+                            <input type="text" class="form-control" id="country" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isDefault">
+                            <label class="form-check-label" for="isDefault">
+                                Set as default address
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addressType" class="form-label">Address Type</label>
+                        <select class="form-select" id="addressType" required>
+                            <option value="">Select type...</option>
+                            <option value="home">Home</option>
+                            <option value="work">Work</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAddress()">Save Address</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let addresses = [];
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function getAuthHeaders(isJson) {
+    const headers = {};
+    if (isJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    const isSessionAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const accessToken = localStorage.getItem('access_token');
+    if (!isSessionAuthenticated && accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+}
+
+async function parseApiError(response, fallbackMessage) {
+    try {
+        const data = await response.json();
+        if (typeof data.error === 'string' && data.error) {
+            return data.error;
+        }
+        if (typeof data.detail === 'string' && data.detail) {
+            return data.detail;
+        }
+        const fieldErrors = Object.values(data).flat().join(' ');
+        return fieldErrors || fallbackMessage;
+    } catch (error) {
+        return fallbackMessage;
+    }
+}
+
+function displayAddressType(addressType) {
+    if (!addressType) return '-';
+    return addressType.charAt(0).toUpperCase() + addressType.slice(1);
+}
+
+function normalizeAddressList(payload) {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+    if (payload && Array.isArray(payload.results)) {
+        return payload.results;
+    }
+    return [];
+}
+
+async function loadAddresses() {
+    try {
+        const response = await fetch('/api/auth/addresses/', {
+            headers: getAuthHeaders(false)
+        });
+        
+        if (response.ok) {
+            const payload = await response.json();
+            addresses = normalizeAddressList(payload);
+            renderAddresses();
+        } else {
+            document.getElementById('addressesList').innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">Unable to load addresses. Please try again.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        document.getElementById('addressesList').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">Error loading addresses: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function renderAddresses() {
+    const container = document.getElementById('addressesList');
+    
+    if (addresses.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                <h4>No addresses found</h4>
+                <p class="text-muted">Add your first address to get started</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = addresses.map(address => `
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 ${address.is_default ? 'border-primary' : ''}">
+                <div class="card-body">
+                    ${address.is_default ? '<span class="badge bg-primary mb-2">Default</span>' : ''}
+                    <h5 class="card-title">${address.first_name} ${address.last_name}</h5>
+                    ${address.company ? `<p class="text-muted">${address.company}</p>` : ''}
+                    <p class="card-text">
+                        ${address.address_line_1}<br>
+                        ${address.address_line_2 ? address.address_line_2 + '<br>' : ''}
+                        ${address.city}, ${address.state} ${address.postal_code}<br>
+                        ${address.country}<br>
+                        <small class="text-muted">Phone: ${address.phone}</small>
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-secondary">${displayAddressType(address.address_type)}</span>
+                        <div>
+                            ${!address.is_default ? `<button class="btn btn-sm btn-outline-success me-2" onclick="setDefaultAddress(${address.id})">Make Default</button>` : ''}
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="editAddress(${address.id})">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAddress(${address.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function saveAddress() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const addressLine1 = document.getElementById('addressLine1').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state').value.trim();
+    const postalCode = document.getElementById('postalCode').value.trim();
+    const country = document.getElementById('country').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const addressType = document.getElementById('addressType').value;
+
+    if (!firstName || !lastName || !addressLine1 || !city || !state || !postalCode || !country || !phone || !addressType) {
+        alert('Please fill all required address fields.');
+        return;
+    }
+
+    const formData = {
+        first_name: firstName,
+        last_name: lastName,
+        company: document.getElementById('company').value.trim(),
+        address_line_1: addressLine1,
+        address_line_2: document.getElementById('addressLine2').value.trim(),
+        city: city,
+        state: state,
+        postal_code: postalCode,
+        country: country,
+        phone: phone,
+        is_default: document.getElementById('isDefault').checked || addresses.length === 0,
+        address_type: addressType
+    };
+    
+    try {
+        const response = await fetch('/api/auth/addresses/', {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            const modalElement = document.getElementById('addAddressModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+            document.getElementById('addAddressForm').reset();
+            document.getElementById('addressType').value = 'home';
+            document.getElementById('isDefault').checked = false;
+            loadAddresses();
+        } else {
+            alert(await parseApiError(response, 'Failed to save address.'));
+        }
+    } catch (error) {
+        alert(error.message || 'Failed to save address.');
+    }
+}
+
+async function setDefaultAddress(id) {
+    try {
+        const response = await fetch(`/api/auth/addresses/${id}/`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ is_default: true })
+        });
+
+        if (!response.ok) {
+            alert(await parseApiError(response, 'Failed to set default address.'));
+            return;
+        }
+
+        await loadAddresses();
+    } catch (error) {
+        alert(error.message || 'Failed to set default address.');
+    }
+}
+
+async function deleteAddress(id) {
+    if (!confirm('Are you sure you want to delete this address?')) return;
+    
+    try {
+        const response = await fetch(`/api/auth/addresses/${id}/`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(false)
+        });
+        
+        if (response.ok) {
+            loadAddresses();
+        } else {
+            alert(await parseApiError(response, 'Error deleting address.'));
+        }
+    } catch (error) {
+        alert(error.message || 'Error deleting address.');
+    }
+}
+
+function editAddress(id) {
+    // TODO: Implement edit functionality
+    alert('Edit functionality coming soon!');
+}
+
+// Load addresses when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('addressType').value = 'home';
+    loadAddresses();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <img
+                        id="profileAvatarPreview"
+                        src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                        class="rounded-circle mb-3"
+                        width="120"
+                        height="120"
+                        alt="Profile"
+                        style="object-fit: cover;"
+                    >
+                    <h5 id="profileCardName">{{ user.first_name }} {{ user.last_name }}</h5>
+                    <p class="text-muted">{{ user.email }}</p>
+                    <span class="badge bg-primary">{{ user.role|title }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Profile Information</h4>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="firstName" value="{{ user.first_name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" value="{{ user.last_name }}" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" value="{{ user.email }}" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" value="{{ user.phone|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="bio" class="form-label">Bio</label>
+                            <textarea class="form-control" id="bio" rows="3">{% if profile.bio %}{{ profile.bio }}{% endif %}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="avatar" class="form-label">Profile Image</label>
+                            <input type="file" class="form-control" id="avatar" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="updateProfileBtn">Update Profile</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function getAuthHeaders(isJson) {
+    const headers = {};
+    if (isJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    const isSessionAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const accessToken = localStorage.getItem('access_token');
+    if (!isSessionAuthenticated && accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+}
+
+async function parseApiError(response, fallbackMessage) {
+    try {
+        const data = await response.json();
+        if (typeof data.error === 'string' && data.error) {
+            return data.error;
+        }
+        if (typeof data.detail === 'string' && data.detail) {
+            return data.detail;
+        }
+        if (data.errors && typeof data.errors === 'object') {
+            const messages = Object.values(data.errors).flat().join(' ');
+            if (messages) {
+                return messages;
+            }
+        }
+        const fieldErrors = Object.values(data).flat().join(' ');
+        return fieldErrors || fallbackMessage;
+    } catch (error) {
+        return fallbackMessage;
+    }
+}
+
+document.getElementById('avatar').addEventListener('change', function(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+        return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    document.getElementById('profileAvatarPreview').src = previewUrl;
+});
+
+document.getElementById('profileForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const updateBtn = document.getElementById('updateProfileBtn');
+    const originalText = updateBtn.textContent;
+    updateBtn.disabled = true;
+    updateBtn.textContent = 'Updating...';
+
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const bio = document.getElementById('bio').value.trim();
+    const avatarInput = document.getElementById('avatar');
+    const avatarFile = avatarInput.files && avatarInput.files.length ? avatarInput.files[0] : null;
+
+    if (!firstName || !lastName) {
+        alert('First name and last name are required.');
+        updateBtn.disabled = false;
+        updateBtn.textContent = originalText;
+        return;
+    }
+
+    const userPayload = {
+        first_name: firstName,
+        last_name: lastName
+    };
+
+    let phoneSkipped = false;
+    if (!phone) {
+        userPayload.phone = null;
+    } else {
+        const phoneDigits = phone.replace(/\D/g, '');
+        if (phone.startsWith('+') || (phoneDigits.length >= 11 && phoneDigits.length <= 15)) {
+            userPayload.phone = phone;
+        } else {
+            phoneSkipped = true;
+        }
+    }
+
+    try {
+        const userResponse = await fetch('/api/auth/me/', {
+            method: 'PATCH',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(userPayload)
+        });
+
+        if (!userResponse.ok) {
+            throw new Error(await parseApiError(userResponse, 'Failed to update name and phone.'));
+        }
+
+        const profileFormData = new FormData();
+        profileFormData.append('bio', bio);
+        if (avatarFile) {
+            profileFormData.append('avatar', avatarFile, avatarFile.name);
+        }
+
+        const profileResponse = await fetch('/api/auth/profile/', {
+            method: 'PATCH',
+            headers: getAuthHeaders(false),
+            body: profileFormData
+        });
+
+        if (!profileResponse.ok) {
+            throw new Error(await parseApiError(profileResponse, 'Failed to update profile image.'));
+        }
+
+        document.getElementById('profileCardName').textContent = `${firstName} ${lastName}`;
+        if (phoneSkipped) {
+            alert('Profile updated. To update phone, use country code format like +91XXXXXXXXXX.');
+        } else {
+            alert('Profile updated successfully.');
+        }
+        window.location.reload();
+    } catch (error) {
+        alert(error.message || 'Failed to update profile.');
+    } finally {
+        updateBtn.disabled = false;
+        updateBtn.textContent = originalText;
+    }
+});
+
+</script>
+{% endblock %}

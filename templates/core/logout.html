@@ -1,0 +1,65 @@
+﻿{% extends 'core/base.html' %}
+
+{% block title %}Logout - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h3 class="card-title mb-3">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logging you out...
+                    </h3>
+                    <p class="text-muted">Please wait.</p>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const refresh = localStorage.getItem('refresh_token');
+    const access = localStorage.getItem('access_token');
+
+    fetch('/api/auth/logout/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(access ? { 'Authorization': `Bearer ${access}` } : {}),
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ refresh: refresh }),
+    })
+    .catch(() => {})
+    .finally(() => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+    });
+})();
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

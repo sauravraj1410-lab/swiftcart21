@@ -1,0 +1,143 @@
+﻿{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Contact Us - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold">Contact Us</h1>
+                <p class="lead text-muted">We'd love to hear from you</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-envelope text-primary me-2"></i>Get in Touch</h5>
+                            <form id="contactForm">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="subject" class="form-label">Subject</label>
+                                    <input type="text" class="form-control" id="subject" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">Message</label>
+                                    <textarea class="form-control" id="message" rows="5" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #1d9bf0 0%, #6f42c1 100%);">
+                        <div class="card-body text-center text-white py-4">
+                            <h5 class="fw-bold mb-2"><i class="fas fa-tags me-2"></i>Get Offers and Discounts</h5>
+                            <p class="mb-3">Join our Telegram channel for latest deals, exclusive offers, and discount updates.</p>
+                            <a href="https://t.me/greatsale14" target="_blank" rel="noopener" class="btn btn-light fw-semibold px-4">
+                                <i class="fab fa-telegram-plane me-2"></i>Join Telegram
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-gamepad text-info me-2"></i>Use Our Related Apps & Games</h5>
+                            <p class="text-muted mb-3">Open our related app and game directly from here.</p>
+
+                            <div class="border rounded p-3 mb-3">
+                                <img src="{% static 'images/related_apps/tai-bihari.png' %}" class="img-fluid rounded mb-2" alt="Ai Bihari App" style="width: 100%; height: 140px; object-fit: cover;">
+                                <div class="fw-bold">Ai Bihari</div>
+                                <small class="text-muted d-block mb-2">Related App</small>
+                                <a href="https://indiana1410.onrender.com" target="_blank" rel="noopener" class="btn btn-primary w-100">Search with Ai Bihari</a>
+                            </div>
+
+                            <div class="border rounded p-3 mb-3">
+                                <img src="{% static 'images/related_apps/neon-galaxy-shooter.png' %}" class="img-fluid rounded mb-2" alt="Neon Galaxy Shooter" style="width: 100%; height: 140px; object-fit: cover;">
+                                <div class="fw-bold">Neon Galaxy Shooter</div>
+                                <small class="text-muted d-block mb-2">Related Game</small>
+                                <a href="https://superlative-frangipane-5950bf.netlify.app/" target="_blank" rel="noopener" class="btn btn-success w-100">Play Neon Galaxy Shooter</a>
+                            </div>
+
+                            <div class="border rounded p-3">
+                                <img src="{% static 'images/related_apps/insta-fa01.png' %}" class="img-fluid rounded mb-2" alt="Insta Social Media App" style="width: 100%; height: 140px; object-fit: cover;">
+                                <div class="fw-bold">Insta App</div>
+                                <small class="text-muted d-block mb-2">Social Media App</small>
+                                <a href="https://insta-fa01.onrender.com" target="_blank" rel="noopener" class="btn btn-danger w-100">Open Insta App</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('contactForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const subject = document.getElementById('subject').value;
+    const message = document.getElementById('message').value;
+    
+    fetch('/contact/submit/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            name: name,
+            email: email,
+            subject: subject,
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
+            document.getElementById('contactForm').reset();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Something went wrong. Please try again.', 'error');
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

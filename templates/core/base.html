@@ -1,0 +1,225 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{% block title %}{% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
+    <div class="top-safe-spacer" aria-hidden="true"></div>
+    <div style="display:none;" aria-hidden="true">{% csrf_token %}</div>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark bg-dark py-2">
+        <div class="container">
+            <div class="w-100">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <a class="navbar-brand mb-0" href="{% url 'home' %}">
+                        {% if site_settings and site_settings.site_logo %}
+                            <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" height="30">
+                        {% else %}
+                            <i class="fas fa-shopping-cart me-2"></i>SwiftCart
+                        {% endif %}
+                    </a>
+
+                    <ul class="navbar-nav d-none d-lg-flex flex-row align-items-center gap-lg-2 ms-4">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'products' %}active{% endif %}" href="{% url 'products' %}">Products</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'sellers' %}active{% endif %}" href="{% url 'sellers' %}">Sellers</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'about' %}">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'contact' %}">Contact</a>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex align-items-center ms-auto mobile-top-actions">
+                        <!-- Search Bar (Desktop) -->
+                        <form class="d-none d-lg-flex me-3 nav-search-form" action="{% url 'products' %}" method="GET">
+                            <input class="form-control me-2" type="search" name="search" placeholder="Search products..." value="{{ search_query|default:'' }}">
+                            <button class="btn btn-outline-light" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </form>
+
+                        <!-- Cart -->
+                        <div class="dropdown me-2 me-lg-3">
+                            <button class="btn btn-outline-light position-relative" type="button" data-bs-toggle="dropdown" aria-label="Cart">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span class="cart-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">0</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user.is_authenticated %}
+                                <li><a class="dropdown-item" href="{% url 'user_cart' %}">Open Cart</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'products' %}">Add More Products</a></li>
+                                {% else %}
+                                <li><a class="dropdown-item" href="{% url 'login' %}">Login to view cart</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <!-- User Menu -->
+                        {% if user.is_authenticated %}
+                            <div class="dropdown me-2">
+                                <button class="btn btn-outline-light dropdown-toggle user-menu-btn" type="button" data-bs-toggle="dropdown" aria-label="Profile Menu">
+                                    <i class="fas fa-user me-lg-2"></i><span class="d-none d-lg-inline">{{ user.email|truncatechars:20 }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'user_profile' %}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'user_addresses' %}"><i class="fas fa-map-marker-alt me-2"></i>Addresses</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'user_orders' %}"><i class="fas fa-shopping-bag me-2"></i>Orders</a></li>
+                                    {% if user.is_superuser %}
+                                    <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}"><i class="fas fa-cogs me-2"></i>Admin Dashboard</a></li>
+                                    {% endif %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="btn btn-outline-light me-2 d-none d-lg-inline-flex">Login</a>
+                            <a href="{% url 'register' %}" class="btn btn-primary me-2 d-none d-lg-inline-flex">Register</a>
+                            <a href="{% url 'login' %}" class="btn btn-outline-light me-2 d-lg-none" aria-label="Login">
+                                <i class="fas fa-user"></i>
+                            </a>
+                        {% endif %}
+
+                        <!-- Mobile Menu Button -->
+                        <button class="btn btn-outline-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenuNav" aria-controls="mobileMenuNav" aria-label="Open Menu">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Bar (Mobile) -->
+                <form class="d-flex d-lg-none mt-2 mobile-search-form" action="{% url 'products' %}" method="GET">
+                    <input class="form-control me-2" type="search" name="search" placeholder="Search products..." value="{{ search_query|default:'' }}">
+                    <button class="btn btn-outline-light" type="submit" aria-label="Search">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Nav Menu -->
+    <div class="offcanvas offcanvas-start text-bg-dark d-lg-none" tabindex="-1" id="mobileMenuNav" aria-labelledby="mobileMenuNavLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="mobileMenuNavLabel">Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="navbar-nav">
+                <li class="nav-item mb-2">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'products' %}active{% endif %}" href="{% url 'products' %}">Products</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'sellers' %}active{% endif %}" href="{% url 'sellers' %}">Sellers</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'about' %}">About Us</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'contact' %}">Contact Us</a>
+                </li>
+            </ul>
+
+            {% if not user.is_authenticated %}
+            <div class="d-grid gap-2 mt-4">
+                <a href="{% url 'login' %}" class="btn btn-outline-light">Login</a>
+                <a href="{% url 'register' %}" class="btn btn-primary">Register</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>{% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}</h5>
+                    <p>SwiftCart is an online shopping platform registered in 2026.</p>
+                    {% if site_settings %}
+                        {% if site_settings.facebook_url %}
+                        <a href="{{ site_settings.facebook_url }}" class="text-white me-3"><i class="fab fa-facebook"></i></a>
+                        {% endif %}
+                        {% if site_settings.twitter_url %}
+                        <a href="{{ site_settings.twitter_url }}" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                        {% endif %}
+                        {% if site_settings.instagram_url %}
+                        <a href="{{ site_settings.instagram_url }}" class="text-white me-3"><i class="fab fa-instagram"></i></a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'about' %}" class="text-white text-decoration-none">About Us</a></li>
+                        <li><a href="{% url 'contact' %}" class="text-white text-decoration-none">Contact</a></li>
+                        <li><a href="{% url 'register' %}" class="text-white text-decoration-none">Register</a></li>
+                        <li><a href="{% url 'privacy' %}" class="text-white text-decoration-none">Privacy Policy</a></li>
+                        <li><a href="{% url 'terms' %}" class="text-white text-decoration-none">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact Info</h5>
+                    <p>
+                        <i class="fas fa-envelope me-2"></i>
+                        <a href="mailto:indiansaurav1410@gmail.com" class="text-white text-decoration-none">indiansaurav1410@gmail.com</a>
+                    </p>
+                    <p><i class="fas fa-map-marker-alt me-2"></i>Village Palaki Sultani, Guraru, Gaya</p>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>&copy; 2026 {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p>Built for modern online shopping</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

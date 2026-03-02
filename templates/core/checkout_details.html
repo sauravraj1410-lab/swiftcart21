@@ -1,0 +1,177 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Checkout Details - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="mb-3">Step 1: Delivery Details</h3>
+                    <p class="text-muted mb-4">Fill your delivery details to continue to payment.</p>
+
+                    {% if not product.is_in_stock %}
+                    <div class="alert alert-danger">
+                        This product is currently out of stock.
+                    </div>
+                    {% endif %}
+
+                    <form id="checkoutDetailsForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="recipientName" class="form-label">Name</label>
+                                <input type="text" id="recipientName" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="recipientPhone" class="form-label">Mobile Number</label>
+                                <input type="tel" id="recipientPhone" class="form-control" maxlength="15" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="checkoutQuantity" class="form-label">Quantity</label>
+                                <input
+                                    type="number"
+                                    id="checkoutQuantity"
+                                    class="form-control"
+                                    value="{{ initial_quantity }}"
+                                    min="1"
+                                    {% if product.track_inventory %}max="{{ product.quantity }}"{% endif %}
+                                    {% if not product.is_in_stock %}disabled{% endif %}
+                                    required
+                                >
+                            </div>
+                            <div class="col-12">
+                                <label for="houseDetails" class="form-label">House Name / Building / Landmark</label>
+                                <input type="text" id="houseDetails" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="village" class="form-label">Village</label>
+                                <input type="text" id="village" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="postOffice" class="form-label">Post Office</label>
+                                <input type="text" id="postOffice" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="district" class="form-label">District</label>
+                                <input type="text" id="district" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="pinCode" class="form-label">PIN Code</label>
+                                <input type="text" id="pinCode" class="form-control" maxlength="6" required>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-success" {% if not product.is_in_stock %}disabled{% endif %}>
+                                Continue to Payment
+                            </button>
+                            <a href="{% url 'product_detail' product.id %}" class="btn btn-outline-secondary">Back</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-3">Order Summary</h5>
+                    <p class="mb-1"><strong>{{ product.name }}</strong></p>
+                    <p class="text-muted mb-2">Unit Price: INR <span id="unitPrice">{{ product.price }}</span></p>
+                    <p class="mb-2">Quantity: <span id="summaryQty">{{ initial_quantity }}</span></p>
+                    <hr>
+                    <p class="mb-0 fs-5">Total: <strong>INR <span id="summaryTotal">{{ product.price }}</span></strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const checkoutProductId = '{{ product.id }}';
+const checkoutStorageKey = `checkout_${checkoutProductId}`;
+const unitPriceValue = Number('{{ product.price|floatformat:2 }}');
+const isInventoryTracked = {{ product.track_inventory|yesno:"true,false" }};
+const maxQuantity = {{ product.quantity|default:0 }};
+
+function notify(message, type) {
+    if (typeof showNotification === 'function') {
+        showNotification(message, type || 'info');
+        return;
+    }
+    alert(message);
+}
+
+function updateSummary() {
+    const qtyInput = document.getElementById('checkoutQuantity');
+    const summaryQty = document.getElementById('summaryQty');
+    const summaryTotal = document.getElementById('summaryTotal');
+    let quantity = parseInt(qtyInput.value || '1', 10);
+
+    if (!Number.isFinite(quantity) || quantity < 1) {
+        quantity = 1;
+    }
+    if (isInventoryTracked && maxQuantity > 0 && quantity > maxQuantity) {
+        quantity = maxQuantity;
+    }
+    qtyInput.value = quantity;
+
+    const total = unitPriceValue * quantity;
+    summaryQty.textContent = String(quantity);
+    summaryTotal.textContent = total.toFixed(2);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const userAuthenticated = document.body.getAttribute('data-user-authenticated') === 'true';
+    const hasToken = !!localStorage.getItem('access_token');
+    if (!userAuthenticated && !hasToken) {
+        window.location.href = '{% url "login" %}';
+        return;
+    }
+
+    const qtyInput = document.getElementById('checkoutQuantity');
+    qtyInput.addEventListener('input', updateSummary);
+    updateSummary();
+});
+
+document.getElementById('checkoutDetailsForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const quantity = parseInt(document.getElementById('checkoutQuantity').value || '1', 10);
+    const recipientName = document.getElementById('recipientName').value.trim();
+    const recipientPhone = document.getElementById('recipientPhone').value.trim();
+    const houseDetails = document.getElementById('houseDetails').value.trim();
+    const village = document.getElementById('village').value.trim();
+    const postOffice = document.getElementById('postOffice').value.trim();
+    const district = document.getElementById('district').value.trim();
+    const pinCode = document.getElementById('pinCode').value.trim();
+
+    if (!recipientName || !recipientPhone || !houseDetails || !village || !postOffice || !district || !pinCode) {
+        notify('Please fill all required fields.', 'error');
+        return;
+    }
+    if (!/^\d{6}$/.test(pinCode)) {
+        notify('PIN code must be 6 digits.', 'error');
+        return;
+    }
+
+    const payload = {
+        product_id: checkoutProductId,
+        quantity: quantity > 0 ? quantity : 1,
+        recipient_name: recipientName,
+        recipient_phone: recipientPhone,
+        house_details: houseDetails,
+        village: village,
+        post_office: postOffice,
+        district: district,
+        pin_code: pinCode
+    };
+
+    sessionStorage.setItem(checkoutStorageKey, JSON.stringify(payload));
+    window.location.href = `/checkout/${checkoutProductId}/payment/`;
+});
+</script>
+{% endblock %}
