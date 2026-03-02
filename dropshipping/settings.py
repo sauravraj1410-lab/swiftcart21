@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from decouple import config
 import os
+import sys
 from urllib.parse import parse_qs, unquote, urlparse
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
@@ -271,7 +272,14 @@ if IS_PRODUCTION and DATABASES['default']['ENGINE'] == 'django.db.backends.sqlit
         'SQLite is not supported in production. Configure PostgreSQL with DATABASE_URL or DB_* variables.'
     )
 
-if RUNNING_ON_RENDER and DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+CURRENT_COMMAND = sys.argv[1] if len(sys.argv) > 1 else ''
+SKIP_DB_GUARD_COMMANDS = {'collectstatic'}
+
+if (
+    RUNNING_ON_RENDER
+    and DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql'
+    and CURRENT_COMMAND not in SKIP_DB_GUARD_COMMANDS
+):
     db_host = (DATABASES['default'].get('HOST') or '').strip()
     if _is_local_host(db_host):
         raise ImproperlyConfigured(
