@@ -119,7 +119,7 @@ def admin_dashboard(request):
     
     # Get seller category for admin, create if it doesn't exist
     from products.models import Category
-    seller_category, created = Category.objects.get_or_create(
+    seller_category, _ = Category.objects.get_or_create(
         name='Seller Products',
         defaults={
             'slug': 'seller-products',
@@ -208,7 +208,7 @@ def admin_sellers(request):
 @admin_login_required
 def admin_products(request):
     """Admin products management"""
-    products = Product.objects.select_related('category', 'seller').order_by('-created_at')
+    products = Product.objects.select_related('category', 'seller').prefetch_related('images').order_by('-created_at')
     
     context = {
         'products': products
@@ -432,3 +432,5 @@ def delete_seller(request, seller_id):
         return Response({'message': 'Seller deleted successfully'})
     except Seller.DoesNotExist:
         return Response({'error': 'Seller not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
