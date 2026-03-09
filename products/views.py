@@ -272,40 +272,63 @@ class ProductCreateView(generics.CreateAPIView):
                 request.data._mutable = False
             
             # Set default values and sanitize nullable numeric fields.
-            request.data._mutable = True
-            request.data['compare_price'] = _clean_optional_number(request.data.get('compare_price'))
-            request.data['weight'] = _clean_optional_number(request.data.get('weight'))
-            request.data['cost_price'] = _clean_optional_number(request.data.get('cost_price'))
-            request.data['seller_upi_id'] = getattr(settings, 'ADMIN_UPI_ID', '')
-            request.data['seller'] = None
-            request.data['barcode'] = ''
-            request.data._mutable = False
-
             image_file = request.FILES.get('image')
+            request_data = request.data
+            if hasattr(request_data, '_mutable'):
+                request_data._mutable = True
+
+            request_data['compare_price'] = _clean_optional_number(request_data.get('compare_price'))
+            request_data['weight'] = _clean_optional_number(request_data.get('weight'))
+            request_data['cost_price'] = _clean_optional_number(request_data.get('cost_price'))
+            request_data['seller_upi_id'] = getattr(settings, 'ADMIN_UPI_ID', '')
+            request_data['seller'] = None
+            request_data['barcode'] = ''
+
+            # Keep uploaded file for ProductImage and remove unknown field from Product serializer payload.
+            if hasattr(request_data, 'pop'):
+                request_data.pop('image', None)
+
+            if hasattr(request_data, '_mutable'):
+                request_data._mutable = False
 
             # Create product
             response = super().create(request, *args, **kwargs)
 
+            image_upload_warning = ''
+
             # Persist uploaded primary image for storefront rendering.
             if image_file and response.status_code == status.HTTP_201_CREATED:
                 product_id = response.data.get('id')
-                created_product = Product.objects.filter(id=product_id).first()
+                created_product = Product.objects.select_related('category', 'seller').prefetch_related('images', 'variants').filter(id=product_id).first()
                 if created_product:
-                    ProductImage.objects.create(
-                        product=created_product,
-                        image=image_file,
-                        alt_text=created_product.name,
-                        is_primary=True,
-                        sort_order=0,
-                    )
-                    # Refresh serialized data so image relation is reflected.
-                    response.data = self.get_serializer(created_product).data
-            
-            return Response({
+                    try:
+                        ProductImage.objects.create(
+                            product=created_product,
+                            image=image_file,
+                            alt_text=created_product.name,
+                            is_primary=True,
+                            sort_order=0,
+                        )
+                        # Refresh serialized data so image relation is reflected.
+                        refreshed_product = Product.objects.select_related('category', 'seller').prefetch_related('images', 'variants').filter(id=product_id).first()
+                        if refreshed_product:
+                            response.data = self.get_serializer(refreshed_product).data
+                    except Exception:
+                        logger.exception('Product image upload failed for product %s', product_id)
+                        image_upload_warning = (
+                            'Product was created, but image upload failed. '
+                            'Please check server time / media storage configuration and try uploading again.'
+                        )
+
+            response_payload = {
                 'success': True,
                 'message': 'Product added successfully! UPI payment method has been automatically configured.',
                 'product': response.data
-            }, status=status.HTTP_201_CREATED)
+            }
+            if image_upload_warning:
+                response_payload['warning'] = image_upload_warning
+
+            return Response(response_payload, status=status.HTTP_201_CREATED)
             
         except serializers.ValidationError as e:
             return Response({
@@ -371,3 +394,4 @@ class AdminProductDetailView(generics.RetrieveAPIView):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only admin users can view admin product details")
         return Product.objects.select_related('category', 'seller').prefetch_related('images', 'variants')
+
