@@ -1,4 +1,4 @@
-﻿{% extends 'core/base.html' %}
+{% extends 'core/base.html' %}
 
 {% block title %}Privacy Policy - {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %}{% endblock %}
 
@@ -6,62 +6,138 @@
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-9 mx-auto">
-            <h1 class="mb-4">Privacy Policy</h1>
+            <h1 class="mb-4 fw-bold">Privacy Policy</h1>
             <p class="text-muted">
-                This policy explains how {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %} collects, uses, and protects your information.
+                This Privacy Policy explains how {% if site_settings %}{{ site_settings.site_name }}{% else %}SwiftCart{% endif %} collects, uses, stores, and protects your personal information when you use our platform.
             </p>
 
+            <!-- Section -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5>1. Information We Collect</h5>
-                    <p class="mb-0">
-                        We may collect account details, contact information, order history, device/browser details, and communications you send to support.
-                    </p>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5>2. How We Use Information</h5>
                     <ul class="mb-0">
-                        <li>To create and manage your account</li>
-                        <li>To process purchases, payments, and deliveries</li>
-                        <li>To improve platform performance and security</li>
-                        <li>To send service updates and support responses</li>
+                        <li><strong>Personal Information:</strong> Name, email address, phone number, and delivery address</li>
+                        <li><strong>Account Details:</strong> Login credentials and profile data</li>
+                        <li><strong>Transaction Data:</strong> Order history, payments, and billing details</li>
+                        <li><strong>Technical Data:</strong> IP address, browser type, device information</li>
+                        <li><strong>Usage Data:</strong> Pages visited, time spent, and interactions on the platform</li>
                     </ul>
                 </div>
             </div>
 
+            <!-- Section -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h5>3. Data Sharing</h5>
+                    <h5>2. How We Use Your Information</h5>
+                    <ul class="mb-0">
+                        <li>To create and manage your account</li>
+                        <li>To process orders, payments, and deliveries</li>
+                        <li>To improve website performance and user experience</li>
+                        <li>To provide customer support and respond to queries</li>
+                        <li>To send important updates, notifications, and offers</li>
+                        <li>To prevent fraud and enhance security</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>3. Cookies and Tracking Technologies</h5>
                     <p class="mb-0">
-                        We only share information with trusted service providers required to operate the platform (for example, payment and shipping partners), or where required by law.
+                        We use cookies and similar technologies to enhance your experience, analyze traffic, and personalize content. You can control cookie preferences through your browser settings.
                     </p>
                 </div>
             </div>
 
+            <!-- Section -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h5>4. Security</h5>
+                    <h5>4. Data Sharing and Disclosure</h5>
+                    <ul class="mb-0">
+                        <li>With payment gateways for secure transactions</li>
+                        <li>With delivery partners to fulfill orders</li>
+                        <li>With service providers for hosting and analytics</li>
+                        <li>When required by law or legal processes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>5. Data Security</h5>
                     <p class="mb-0">
-                        We implement reasonable technical and organizational safeguards. No system is 100 percent secure, but we continuously improve our protections.
+                        We implement appropriate technical and organizational measures to protect your data. However, no online system is completely secure, and we cannot guarantee absolute security.
                     </p>
                 </div>
             </div>
 
+            <!-- Section -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h5>5. Your Choices</h5>
+                    <h5>6. Data Retention</h5>
                     <p class="mb-0">
-                        You can review and update profile details from your account. For privacy requests, contact us using the details on the contact page.
+                        We retain your information only as long as necessary for business, legal, or regulatory purposes.
                     </p>
                 </div>
             </div>
 
-            <p class="text-muted small mb-0">Last updated: February 23, 2026</p>
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>7. Your Rights</h5>
+                    <ul class="mb-0">
+                        <li>Access and update your personal information</li>
+                        <li>Request deletion of your account and data</li>
+                        <li>Opt out of marketing communications</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>8. Third-Party Links</h5>
+                    <p class="mb-0">
+                        Our platform may contain links to third-party websites. We are not responsible for their privacy practices or content.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>9. Children's Privacy</h5>
+                    <p class="mb-0">
+                        Our services are not intended for children under 13. We do not knowingly collect personal information from children.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>10. Changes to This Policy</h5>
+                    <p class="mb-0">
+                        We may update this Privacy Policy from time to time. Continued use of the platform after updates means you accept the revised policy.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5>11. Contact Us</h5>
+                    <p class="mb-0">
+                        If you have any questions about this Privacy Policy, please contact us at:<br>
+                        📧 support@swiftcart.com
+                    </p>
+                </div>
+            </div>
+
+            <p class="text-muted small mb-0">Last updated: March 22, 2026</p>
         </div>
     </div>
 </div>
 {% endblock %}
-
