@@ -104,9 +104,17 @@ document.getElementById('otpForm').addEventListener('submit', function(e) {
     })
     .then(data => {
         if (data.message) {
-            alert('Email verified successfully! Redirecting to login...');
+            // Store tokens and user data
+            if (data.access && data.refresh) {
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
+                localStorage.setItem('user', JSON.stringify(data.user));
+            }
+            
+            const redirectUrl = data.redirect_url || '/profile/';
+            alert('Email verified successfully! Redirecting to your account...');
             setTimeout(() => {
-                window.location.href = '/login/';
+                window.location.href = redirectUrl;
             }, 2000);
         }
     })
