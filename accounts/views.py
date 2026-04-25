@@ -155,6 +155,7 @@ class UserRegistrationView(generics.CreateAPIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             user = serializer.save()
+            
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             
@@ -432,7 +433,25 @@ def verify_email(request):
         email_verification.is_verified = True
         email_verification.save()
         
-        return Response({'message': 'Email verified successfully!'})
+        # Generate JWT tokens and log the user in
+        refresh = RefreshToken.for_user(user)
+        login(request, user)
+        
+        # Determine redirect URL based on user role
+        from django.conf import settings
+        admin_email = (getattr(settings, 'ADMIN_EMAIL', '') or '').strip().lower()
+        
+        redirect_url = '/profile/'
+        if user.is_superuser or (user.email or '').strip().lower() == admin_email:
+            redirect_url = '/admin-panel/'
+        
+        return Response({
+            'message': 'Email verified successfully!',
+            'user': UserSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'redirect_url': redirect_url
+        })
         
     except Exception:
         logger.exception('Email verification failed')
