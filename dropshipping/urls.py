@@ -27,7 +27,7 @@ from core.admin_views import (
 from core import admin_api_views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('sauravkumar141020099241/', admin.site.urls),
     
     # API URLs
     path('api/auth/', include('accounts.urls')),
